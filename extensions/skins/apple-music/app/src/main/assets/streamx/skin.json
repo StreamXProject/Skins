@@ -1,0 +1,39 @@
+{
+  "version": 3,
+  "id": "apple-music",
+  "name": "Apple Music",
+  "author": "StreamX",
+  "renderer": {
+    "entryPoint": "com.music.streamx.skins.applemusic.AppleMusicRenderer",
+    "api": 1
+  },
+  "dark": {
+    "background": "#000000",
+    "surface": "#1C1C1E",
+    "surfaceVariant": "#2C2C2E",
+    "text": "#FFFFFF",
+    "secondary": "#AAAAAA",
+    "accent": "#FA2D55"
+  },
+  "light": {
+    "background": "#FFFFFF",
+    "surface": "#F2F2F7",
+    "surfaceVariant": "#E5E5EA",
+    "text": "#111111",
+    "secondary": "#555555",
+    "accent": "#D91940"
+  },
+  "cornerRadiusDp": 20,
+  "layout": {
+    "icons": "DEFAULT",
+    "home": "SHELVES",
+    "navigation": "FLOATING",
+    "library": "ROWS",
+    "settings": "GROUPED",
+    "player": "IMMERSIVE",
+    "artworkRadiusDp": 10,
+    "shelfWidthDp": 166,
+    "searchRadiusDp": 26,
+    "miniPlayerRadiusDp": 32
+  }
+}

@@ -1,0 +1,138 @@
+name: Build and publish extensions
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: extensions-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - name: Install Android toolchain
+        run: sdkmanager "platforms;android-36" "platforms;android-37.0" "build-tools;36.0.0" "ndk;27.0.12077973"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Check source hygiene
+        run: python3 .github/scripts/verify-sources.py
+      - name: Configure release signing
+        if: github.event_name != 'pull_request'
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: python3 .github/scripts/configure-signing.py
+      - name: Build all skins
+        run: ./gradlew --no-daemon -PextensionBuildNumber="$GITHUB_RUN_NUMBER" :applemusicSkin:assembleRelease :comicSkin:assembleRelease :dotSkin:assembleRelease :looperSkin:assembleRelease :materialexpressiveSkin:assembleRelease :materialui3Skin:assembleRelease :meridianSkin:assembleRelease :spotuiSkin:assembleRelease
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apple-music
+          path: extensions/skins/apple-music/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: comic
+          path: extensions/skins/comic/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dot
+          path: extensions/skins/dot/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: looper
+          path: extensions/skins/looper/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: material-expressive
+          path: extensions/skins/material-expressive/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: material-ui-3
+          path: extensions/skins/material-ui-3/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: meridian
+          path: extensions/skins/meridian/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spotui
+          path: extensions/skins/spotui/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+  publish:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - run: sdkmanager "build-tools;36.0.0"
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Choose release version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          created=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq .created_at)
+          echo "RELEASE_TAG=v$(date -u -d "$created" +%Y.%m.%d.%H%M%S)" >> "$GITHUB_ENV"
+      - name: Verify signatures and create repository index
+        run: python3 .github/scripts/catalogue.py --repo "$GITHUB_REPOSITORY" --tag "$RELEASE_TAG"
+      - name: Publish APKs, then update the discovery index
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          retry() {
+            for attempt in 1 2 3 4; do
+              if "$@"; then return 0; fi
+              sleep "$((attempt * 3))"
+            done
+            return 1
+          }
+          current=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+          if [ "$current" != "$GITHUB_SHA" ]; then
+            echo "A newer main commit has a queued build; skipping this superseded release."
+            exit 0
+          fi
+          tag="$RELEASE_TAG"
+          short_sha=${GITHUB_SHA:0:7}
+          printf 'Automated update from [%s@`%s`](https://github.com/%s/commit/%s)\n' "$GITHUB_REPOSITORY" "$short_sha" "$GITHUB_REPOSITORY" "$GITHUB_SHA" > dist/release-notes.md
+          gh release view "$tag" >/dev/null 2>&1 || retry gh release create "$tag" --target "$GITHUB_SHA" --title "Skins $RELEASE_TAG" --notes-file dist/release-notes.md
+          retry gh release upload "$tag" dist/*.apk --clobber
+          retry gh release edit "$tag" --title "Skins $RELEASE_TAG" --notes-file dist/release-notes.md --latest
+          gh release view repo >/dev/null 2>&1 || retry gh release create repo --target "$GITHUB_SHA" --latest=false --title "Extension repository index" --notes "StreamX reads index.json from this release. APKs are stored in dated version releases."
+          mkdir -p previous
+          if gh release view repo --json assets --jq '.assets[].name' | grep -qx index.json; then
+            retry gh release download repo --pattern index.json --dir previous --clobber
+            if ! python3 .github/scripts/check-index-upgrade.py previous/index.json dist/index.json; then
+              echo "A newer index is already published; keeping it."
+              exit 0
+            fi
+          fi
+          retry gh release upload repo dist/index.json dist/index.min.json --clobber

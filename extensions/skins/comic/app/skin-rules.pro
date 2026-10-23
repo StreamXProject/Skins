@@ -1,0 +1,2 @@
+-keep class com.music.streamx.skins.comic.ComicRenderer { public *; }
+-keepattributes Signature,InnerClasses,EnclosingMethod

@@ -1,0 +1,20 @@
+pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
+dependencyResolutionManagement { repositories { google(); mavenCentral(); maven("https://jitpack.io") } }
+rootProject.name="StreamXSkins"
+include(":shared",":sharedUi")
+include(":applemusicSkin")
+project(":applemusicSkin").projectDir=file("extensions/skins/apple-music/app")
+include(":comicSkin")
+project(":comicSkin").projectDir=file("extensions/skins/comic/app")
+include(":dotSkin")
+project(":dotSkin").projectDir=file("extensions/skins/dot/app")
+include(":looperSkin")
+project(":looperSkin").projectDir=file("extensions/skins/looper/app")
+include(":materialexpressiveSkin")
+project(":materialexpressiveSkin").projectDir=file("extensions/skins/material-expressive/app")
+include(":materialui3Skin")
+project(":materialui3Skin").projectDir=file("extensions/skins/material-ui-3/app")
+include(":meridianSkin")
+project(":meridianSkin").projectDir=file("extensions/skins/meridian/app")
+include(":spotuiSkin")
+project(":spotuiSkin").projectDir=file("extensions/skins/spotui/app")

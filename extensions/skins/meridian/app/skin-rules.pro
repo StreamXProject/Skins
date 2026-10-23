@@ -1,0 +1,2 @@
+-keep class com.music.streamx.skins.meridian.MeridianRenderer { public *; }
+-keepattributes Signature,InnerClasses,EnclosingMethod

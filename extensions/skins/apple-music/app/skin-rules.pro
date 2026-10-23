@@ -1,0 +1,2 @@
+-keep class com.music.streamx.skins.applemusic.AppleMusicRenderer { public *; }
+-keepattributes Signature,InnerClasses,EnclosingMethod

@@ -1,0 +1,2 @@
+-keep class com.music.streamx.skins.looper.LooperRenderer { public *; }
+-keepattributes Signature,InnerClasses,EnclosingMethod

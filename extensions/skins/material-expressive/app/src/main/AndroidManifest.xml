@@ -1,0 +1,14 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <queries><package android:name="com.music.streamx" /></queries>
+    <application android:icon="@drawable/ic_skin_logo" android:label="Material Expressive Skin" android:theme="@android:style/Theme.Material.NoActionBar" android:allowBackup="false">
+        <activity android:name=".SkinActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="com.music.streamx.action.EXTENSION" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <meta-data android:name="streamx.extension.api" android:value="1" />
+            <meta-data android:name="streamx.extension.type" android:value="skin" />
+            <meta-data android:name="streamx.extension.skinAsset" android:value="streamx/skin.json" />
+        </activity>
+    </application>
+</manifest>

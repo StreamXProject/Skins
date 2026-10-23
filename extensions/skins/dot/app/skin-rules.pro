@@ -1,0 +1,2 @@
+-keep class com.music.streamx.skins.dot.DotRenderer { public *; }
+-keepattributes Signature,InnerClasses,EnclosingMethod

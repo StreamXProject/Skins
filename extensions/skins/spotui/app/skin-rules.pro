@@ -1,0 +1,2 @@
+-keep class com.music.streamx.skins.spotui.SpotuiRenderer { public *; }
+-keepattributes Signature,InnerClasses,EnclosingMethod

@@ -1,0 +1,43 @@
+{
+  "version": 3,
+  "id": "comic",
+  "name": "comic",
+  "author": "BitChord",
+  "renderer": {
+    "entryPoint": "com.music.streamx.skins.comic.ComicRenderer",
+    "api": 1
+  },
+  "dark": {
+    "background": "#19191B",
+    "surface": "#242426",
+    "surfaceVariant": "#303033",
+    "text": "#FFF5DD",
+    "secondary": "#C6BEAC",
+    "accent": "#FFE54F"
+  },
+  "light": {
+    "background": "#F4EEDC",
+    "surface": "#FFFAEB",
+    "surfaceVariant": "#EBE2CB",
+    "text": "#191919",
+    "secondary": "#595449",
+    "accent": "#B4271D"
+  },
+  "cornerRadiusDp": 0,
+  "layout": {
+    "icons": "EXTENSION",
+    "home": "QUICK_ACCESS",
+    "navigation": "FLAT",
+    "library": "ROWS",
+    "settings": "FLAT",
+    "player": "EXTENSION",
+    "artworkRadiusDp": 0,
+    "shelfWidthDp": 176,
+    "searchRadiusDp": 0,
+    "miniPlayerRadiusDp": 0
+  },
+  "fonts": {
+    "regular": "streamx/fonts/ComicNeue-Regular.ttf",
+    "bold": "streamx/fonts/Bangers-Regular.ttf"
+  }
+}
