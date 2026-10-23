@@ -1,0 +1,2 @@
+-keep class com.music.streamx.skins.material.ExpressiveRenderer { public *; }
+-keepattributes Signature,InnerClasses,EnclosingMethod

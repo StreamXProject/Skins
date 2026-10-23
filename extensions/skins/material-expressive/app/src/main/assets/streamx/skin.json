@@ -1,0 +1,39 @@
+{
+  "version": 3,
+  "id": "material-expressive-v2",
+  "name": "Material Expressive",
+  "author": "BitChord",
+  "renderer": {
+    "entryPoint": "com.music.streamx.skins.expressive.ExpressiveRenderer",
+    "api": 1
+  },
+  "dark": {
+    "background": "#141218",
+    "surface": "#211F26",
+    "surfaceVariant": "#2B2930",
+    "text": "#E6E0E9",
+    "secondary": "#CAC4D0",
+    "accent": "#D0BCFF"
+  },
+  "light": {
+    "background": "#FEF7FF",
+    "surface": "#F3EDF7",
+    "surfaceVariant": "#E7E0EC",
+    "text": "#1D1B20",
+    "secondary": "#49454F",
+    "accent": "#6750A4"
+  },
+  "cornerRadiusDp": 28,
+  "layout": {
+    "icons": "EXTENSION",
+    "home": "QUICK_ACCESS",
+    "navigation": "FLAT",
+    "library": "ROWS",
+    "settings": "GROUPED",
+    "player": "EXTENSION",
+    "artworkRadiusDp": 24,
+    "shelfWidthDp": 184,
+    "searchRadiusDp": 28,
+    "miniPlayerRadiusDp": 24
+  }
+}

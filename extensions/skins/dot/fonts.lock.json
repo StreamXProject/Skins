@@ -1,0 +1,12 @@
+[
+  {
+    "file": "PlexMono-Regular.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/main/ofl/ibmplexmono/IBMPlexMono-Regular.ttf",
+    "sha256": "7c6fbddca4b700be918f5f6183d9bd4464fa427fe435f0b480d77fe2bb8c5a43"
+  },
+  {
+    "file": "PlexMono-Bold.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/main/ofl/ibmplexmono/IBMPlexMono-Bold.ttf",
+    "sha256": "74e5eedcfa4596497d34e19023cabdabd3a8c852b903007a5654a59591a72ffb"
+  }
+]

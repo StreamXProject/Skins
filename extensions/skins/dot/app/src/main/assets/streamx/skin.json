@@ -1,0 +1,43 @@
+{
+  "version": 3,
+  "id": "dot",
+  "name": "dot",
+  "author": "StreamX contributors",
+  "renderer": {
+    "entryPoint": "com.music.streamx.skins.dot.DotRenderer",
+    "api": 1
+  },
+  "dark": {
+    "background": "#000000",
+    "surface": "#131415",
+    "surfaceVariant": "#1E2122",
+    "text": "#DFE4E5",
+    "secondary": "#9BA2A5",
+    "accent": "#E8A33D"
+  },
+  "light": {
+    "background": "#F2F4F5",
+    "surface": "#FFFFFF",
+    "surfaceVariant": "#E2E5E6",
+    "text": "#131415",
+    "secondary": "#565C5F",
+    "accent": "#C97A1E"
+  },
+  "cornerRadiusDp": 0,
+  "layout": {
+    "icons": "EXTENSION",
+    "home": "QUICK_ACCESS",
+    "navigation": "FLAT",
+    "library": "ROWS",
+    "settings": "FLAT",
+    "player": "EXTENSION",
+    "artworkRadiusDp": 0,
+    "shelfWidthDp": 148,
+    "searchRadiusDp": 0,
+    "miniPlayerRadiusDp": 0
+  },
+  "fonts": {
+    "regular": "streamx/fonts/PlexMono-Regular.ttf",
+    "bold": "streamx/fonts/PlexMono-Bold.ttf"
+  }
+}

@@ -1,0 +1,58 @@
+[
+  {
+    "id": "apple-music",
+    "module": "applemusicSkin",
+    "project": "extensions/skins/apple-music",
+    "packageName": "com.music.streamx.skins.applemusic",
+    "type": "skin"
+  },
+  {
+    "id": "comic",
+    "module": "comicSkin",
+    "project": "extensions/skins/comic",
+    "packageName": "com.music.streamx.skins.comic",
+    "type": "skin"
+  },
+  {
+    "id": "dot",
+    "module": "dotSkin",
+    "project": "extensions/skins/dot",
+    "packageName": "com.music.streamx.skins.dot",
+    "type": "skin"
+  },
+  {
+    "id": "looper",
+    "module": "looperSkin",
+    "project": "extensions/skins/looper",
+    "packageName": "com.music.streamx.skins.looper",
+    "type": "skin"
+  },
+  {
+    "id": "material-expressive",
+    "module": "materialexpressiveSkin",
+    "project": "extensions/skins/material-expressive",
+    "packageName": "com.music.streamx.skins.expressive",
+    "type": "skin"
+  },
+  {
+    "id": "material-ui-3",
+    "module": "materialui3Skin",
+    "project": "extensions/skins/material-ui-3",
+    "packageName": "com.music.streamx.skins.material",
+    "type": "skin"
+  },
+  {
+    "id": "meridian",
+    "module": "meridianSkin",
+    "project": "extensions/skins/meridian",
+    "packageName": "com.music.streamx.skins.meridian",
+    "type": "skin"
+  },
+  {
+    "id": "spotui",
+    "module": "spotuiSkin",
+    "project": "extensions/skins/spotui",
+    "packageName": "com.music.streamx.skins.spotui",
+    "type": "skin"
+  }
+]

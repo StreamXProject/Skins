@@ -1,0 +1,39 @@
+{
+  "version": 3,
+  "id": "meridian",
+  "name": "Meridian",
+  "author": "BitChord",
+  "renderer": {
+    "entryPoint": "com.music.streamx.skins.meridian.MeridianRenderer",
+    "api": 1
+  },
+  "dark": {
+    "background": "#0C1720",
+    "surface": "#13232D",
+    "surfaceVariant": "#1B313B",
+    "text": "#F5EEDC",
+    "secondary": "#9FADA9",
+    "accent": "#F3AB78"
+  },
+  "light": {
+    "background": "#F4F0E6",
+    "surface": "#FFFDF5",
+    "surfaceVariant": "#E7E5D9",
+    "text": "#162B33",
+    "secondary": "#556567",
+    "accent": "#944A29"
+  },
+  "cornerRadiusDp": 14,
+  "layout": {
+    "icons": "EXTENSION",
+    "home": "QUICK_ACCESS",
+    "navigation": "FLAT",
+    "library": "ROWS",
+    "settings": "FLAT",
+    "player": "EXTENSION",
+    "artworkRadiusDp": 12,
+    "shelfWidthDp": 176,
+    "searchRadiusDp": 14,
+    "miniPlayerRadiusDp": 14
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "version": 3,
+  "id": "looper",
+  "name": "Looper",
+  "author": "BitChord / Looper contributors",
+  "renderer": {
+    "entryPoint": "com.music.streamx.skins.looper.LooperRenderer",
+    "api": 1
+  },
+  "dark": {
+    "background": "#000000",
+    "surface": "#0A0A0A",
+    "surfaceVariant": "#181818",
+    "text": "#FFFFFF",
+    "secondary": "#AAAAAA",
+    "accent": "#F4427D"
+  },
+  "light": {
+    "background": "#FFFFFF",
+    "surface": "#F8F8F8",
+    "surfaceVariant": "#EEEEEE",
+    "text": "#111111",
+    "secondary": "#555555",
+    "accent": "#B31D52"
+  },
+  "cornerRadiusDp": 20,
+  "fonts": {
+    "regular": "streamx/fonts/StackSansText-Regular.ttf",
+    "bold": "streamx/fonts/StackSansText-Bold.ttf"
+  },
+  "layout": {
+    "icons": "EXTENSION",
+    "home": "QUICK_ACCESS",
+    "navigation": "FLAT",
+    "library": "ROWS",
+    "settings": "GROUPED",
+    "player": "EXTENSION",
+    "artworkRadiusDp": 8,
+    "shelfWidthDp": 128,
+    "searchRadiusDp": 24,
+    "miniPlayerRadiusDp": 32
+  }
+}

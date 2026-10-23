@@ -1,0 +1,21 @@
+{
+  "version": 3,
+  "renderer": { "entryPoint": "com.music.streamx.skins.spotui.SpotuiRenderer", "api": 1 },
+  "id": "spotui",
+  "name": "Spotui",
+  "author": "Spotui contributors",
+  "dark": {
+    "background": "#121212", "surface": "#181818", "surfaceVariant": "#282828",
+    "text": "#FFFFFF", "secondary": "#B3B3B3", "accent": "#1DB954"
+  },
+  "light": {
+    "background": "#FFFFFF", "surface": "#F5F5F5", "surfaceVariant": "#EEEEEE",
+    "text": "#121212", "secondary": "#555555", "accent": "#087F3B"
+  },
+  "cornerRadiusDp": 4,
+  "fonts": { "regular": "streamx/fonts/regular.otf", "bold": "streamx/fonts/bold.otf" },
+  "layout": {
+    "icons": "EXTENSION", "home": "QUICK_ACCESS", "navigation": "FLAT", "library": "ROWS", "settings": "FLAT", "player": "EXTENSION",
+    "artworkRadiusDp": 4, "shelfWidthDp": 144, "searchRadiusDp": 4, "miniPlayerRadiusDp": 6
+  }
+}

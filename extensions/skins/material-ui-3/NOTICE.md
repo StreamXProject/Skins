@@ -1,0 +1,3 @@
+Color palettes use Google Material Color Utilities, Apache-2.0, commit dd62982dfdefdfc9232ce8d76e122fb1c6d188ae. Java packages are relocated under this skin; compile-time Error Prone annotations are omitted. License headers and COLOR_ENGINE_LICENSE are retained.
+
+Rounded icon paths are vendored from AndroidX Compose Material Icons 1.7.6 (Android Open Source Project), Apache-2.0. Original copyright/license headers are retained; vectors and builders are relocated into this skin rather than linking to shrinkable host icon getters. The Apache license is included in COLOR_ENGINE_LICENSE and APK assets.
