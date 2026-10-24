@@ -1,6 +1,8 @@
 package com.music.streamx.ui.skins
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import com.music.streamx.data.model.Song
 import com.music.streamx.data.lyrics.*
@@ -40,3 +42,9 @@ object SkinTrackArtwork {
 }
 @Composable fun rememberSkinArtworkColor(url: String?): androidx.compose.ui.graphics.Color? =
     com.music.streamx.ui.theme.rememberArtworkThemeSeed(url)
+
+/** What the listener pinned to the top of Library, by browse id, most recent first as the host keeps them. */
+@Composable fun rememberSkinPinnedItems(): List<String> {
+    val pinned by com.music.streamx.ui.AppUi.host.pinnedPlaylists.collectAsStateWithLifecycle()
+    return pinned
+}

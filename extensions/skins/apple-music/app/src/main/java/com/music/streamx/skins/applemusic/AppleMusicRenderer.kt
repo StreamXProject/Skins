@@ -13,7 +13,7 @@ import com.music.streamx.ui.LyricsProviderState
 import com.music.streamx.ui.components.BottomTab
 import com.music.streamx.ui.skins.*
 
-class AppleMusicRenderer : SkinUiRenderer, com.music.streamx.ui.skins.SkinArtworkStatsProvider, SkinAccentNavigation, SkinPluginLibraryProvider, SkinLibraryChrome, SkinFeedHeaderProvider, SkinDefaultPlayerProvider, SkinSolidNavigation, SkinNavigationProvider, SkinThemeProvider, SkinUseHostTheme, SkinSettingsProvider {
+class AppleMusicRenderer : SkinUiRenderer, com.music.streamx.ui.skins.SkinArtworkStatsProvider, SkinAccentNavigation, SkinPluginLibraryProvider, SkinLibraryChrome, SkinFeedHeaderProvider, SkinDefaultPlayerProvider, SkinSolidNavigation, SkinNavigationProvider, SkinThemeProvider, SkinUseHostTheme, com.music.streamx.ui.skins.SkinArtworkPages, com.music.streamx.ui.skins.SkinSegmentedControl, com.music.streamx.ui.skins.SkinToggle, com.music.streamx.ui.skins.SkinSlider, com.music.streamx.ui.skins.SkinAlertDialog, com.music.streamx.ui.skins.SkinOptionSheet, com.music.streamx.ui.skins.SkinTextField, com.music.streamx.ui.skins.SkinRadioTab, com.music.streamx.ui.skins.SkinNavigationLabels, SkinSettingsProvider {
     @Composable override fun SettingsGroup(header: String?, footer: String?, topSpacing: androidx.compose.ui.unit.Dp, content: @Composable () -> Unit) = AppleSettingsGroup(header, footer, topSpacing, content)
     @Composable override fun SettingsDivider() = AppleSettingsDivider()
     @Composable override fun SettingsRow(icon: ImageVector?, iconPainter: androidx.compose.ui.graphics.painter.Painter?, title: String,
@@ -21,7 +21,9 @@ class AppleMusicRenderer : SkinUiRenderer, com.music.streamx.ui.skins.SkinArtwor
         onClick: (() -> Unit)?, trailing: (@Composable () -> Unit)?) = AppleSettingsRow(title, subtitle, subtitleContent, value, badge, enabled, onClick, trailing)
     @Composable override fun FeedHeader(title: String,actions: SkinLibraryActions) = AppleMusicFeedHeader(title,actions)
     @Composable override fun PlayerStyle() = applePlayerStyle()
-    override fun navigationIcon(index: Int) = listOf(com.music.streamx.ui.icons.BitChordIcons.Home,androidx.compose.material.icons.Icons.Rounded.Sensors,androidx.compose.material.icons.Icons.Rounded.LibraryMusic,androidx.compose.material.icons.Icons.Rounded.Search).getOrNull(index)
+    // By tab id: Home, New (the host's grid glyph), Library, Search, Radio.
+    override fun navigationIcon(index: Int) = listOf(com.music.streamx.ui.icons.BitChordIcons.Home,null,AppleIcons.Library,androidx.compose.material.icons.Icons.Rounded.Search,androidx.compose.material.icons.Icons.Rounded.Sensors).getOrNull(index)
+    override fun navigationLabel(index: Int) = if (index == 1) "New" else null
     @Composable override fun Colors(darkTheme: Boolean) = appleColors(darkTheme)
     override fun typography() = androidx.compose.material3.Typography()
     override fun shapes() = androidx.compose.material3.Shapes()
@@ -40,6 +42,15 @@ class AppleMusicRenderer : SkinUiRenderer, com.music.streamx.ui.skins.SkinArtwor
     @Composable override fun LibraryRow(item: ShelfItem, onClick: () -> Unit, onLongPress: () -> Unit) { AppleMusicLibraryRow(item, onClick, onLongPress) }
     @Composable override fun BottomFade(modifier: Modifier, withMiniPlayer: Boolean, pageColor: Color) = AppleMusicBottomFade(modifier, withMiniPlayer, pageColor)
     @Composable override fun LibraryStats(onOpen: () -> Unit) = AppleMusicLibraryStats(onOpen)
+    @Composable override fun SegmentedControl(options: List<String>, selectedIndex: Int, onSelect: (Int) -> Unit, enabled: Boolean, modifier: Modifier) = AppleSegmentedControl(options, selectedIndex, onSelect, enabled, modifier)
+    @Composable override fun Toggle(checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?, enabled: Boolean, modifier: Modifier) = AppleToggle(checked, onCheckedChange, enabled, modifier)
+    @Composable override fun Slider(value: Float, onValueChange: (Float) -> Unit, valueRange: ClosedFloatingPointRange<Float>, steps: Int, enabled: Boolean, modifier: Modifier) = AppleSlider(value, onValueChange, valueRange, steps, enabled, modifier)
+    @Composable override fun AlertDialog(onDismissRequest: () -> Unit, confirmButton: @Composable () -> Unit, dismissButton: (@Composable () -> Unit)?, title: (@Composable () -> Unit)?, text: (@Composable () -> Unit)?, modifier: Modifier) =
+        AppleAlertDialog(onDismissRequest, confirmButton, dismissButton, title, text, modifier)
+    @Composable override fun OptionSheet(title: String, subtitle: String?, options: List<com.music.streamx.ui.skins.SkinOption>, selectedIndex: Int, onSelect: (Int) -> Unit, onDismissRequest: () -> Unit) =
+        AppleOptionSheet(title, subtitle, options, selectedIndex, onSelect, onDismissRequest)
+    @Composable override fun TextField(value: String, onValueChange: (String) -> Unit, placeholder: String?, singleLine: Boolean, modifier: Modifier) =
+        AppleTextField(value, onValueChange, placeholder, singleLine, modifier)
     override fun LazyListScope.FeedShelves(shelves: List<HomeShelf>, layout: SkinLayout, onClick: (ShelfItem, String) -> Unit,
         onLongPress: ((ShelfItem) -> Unit)?, shelfBrowseId: (HomeShelf) -> String?) {
         applemusicFeedShelves(shelves, layout, onClick, onLongPress, shelfBrowseId)

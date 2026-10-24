@@ -30,8 +30,9 @@ import androidx.compose.ui.semantics.contentDescription
 import coil3.compose.AsyncImage
 import com.music.streamx.data.model.*
 import com.music.streamx.ui.skins.*
+import com.music.streamx.ui.components.cardZoomSource
 
-private val categories = listOf("Playlists", "Artists", "Albums", "Songs", "Downloaded")
+private val categories = listOf("Playlists", "Artists", "Albums", "Songs", "Made for You", "Downloaded")
 
 @Composable internal fun AppleMusicLibrary(shelves: List<HomeShelf>, links: List<ShelfItem>, deviceItems: List<ShelfItem>, contentPadding: PaddingValues,
     onItem: (ShelfItem, String) -> Unit, onLongPress: ((ShelfItem) -> Unit)?, onShowAll: (HomeShelf) -> Unit, onNewPlaylist: (() -> Unit)?) {
@@ -62,6 +63,10 @@ private val categories = listOf("Playlists", "Artists", "Albums", "Songs", "Down
         dragged=null;dragOffset=0f;editing=false
     }
     SkinBackHandler(editing || selected != null) { if(editing)finishEditing() else selected=null }
+    // What was pinned, as the cards already loaded for this Library.
+    val pins = rememberSkinPinnedItems()
+    val known = remember(shelves) { shelves.flatMap { it.items }.filter { it.browseId != null }.associateBy { it.browseId } }
+    val pinned = pins.mapNotNull { known[it] }
     val c = MaterialTheme.colorScheme
     fun categoryShelf(name: String): HomeShelf {
         val matches = shelves.filter { shelf ->
@@ -71,6 +76,7 @@ private val categories = listOf("Playlists", "Artists", "Albums", "Songs", "Down
                 "Artists" -> "artist" in title
                 "Albums" -> "album" in title
                 "Songs" -> ("song" in title || "track" in title || "liked" in title) && "video" !in title
+                "Made for You" -> title == "made for you"
                 else -> false
             }
         }
@@ -98,50 +104,15 @@ private val categories = listOf("Playlists", "Artists", "Albums", "Songs", "Down
         "Artist" -> allEntries?.sortedBy { it.subtitle.lowercase() }
         else -> allEntries
     }.orEmpty().filter { selected != "Playlists" || query.isBlank() || it.title.contains(query,ignoreCase=true) }
-    Column(Modifier.fillMaxSize().statusBarsPadding()) {
-    Column(Modifier.padding(top=11.dp)) {
-            Row(Modifier.fillMaxWidth().padding(horizontal=20.dp).heightIn(min=if(selected != null && !editing)44.dp else 64.dp), verticalAlignment=Alignment.CenterVertically) {
-                if(selected != null && !editing) IconButton(onClick={selected=null},modifier=Modifier.size(44.dp).clip(CircleShape).background(c.surface)
-                    .border(.5.dp,c.onSurface.copy(alpha=.12f),CircleShape)) { Icon(Icons.Rounded.ArrowBack, "Library") }
-                if(selected == null || editing) Text("Library", Modifier.weight(1f), style=MaterialTheme.typography.displayLarge.copy(fontSize=34.sp, fontWeight=FontWeight.ExtraBold, letterSpacing=(-.4).sp))
-                else Spacer(Modifier.weight(1f))
-                if(editing) {
-                    IconButton(onClick=::finishEditing,modifier=Modifier.size(44.dp).clip(CircleShape).background(c.primary)) {
-                        Icon(LibraryGlyphs.Check,"Done editing library",Modifier.size(25.dp),tint=Color.White)
-                    }
-                } else {
-                Row(Modifier.clip(CircleShape).background(c.surface).border(.5.dp,c.onSurface.copy(alpha=.12f),CircleShape)) {
-                    IconButton(onClick={onNewPlaylist?.invoke()}, enabled=onNewPlaylist != null, modifier=Modifier.width(54.dp).height(44.dp)) {
-                        Icon(LibraryGlyphs.Add, "New playlist", Modifier.size(25.dp))
-                    }
-                    Box {
-                        IconButton(onClick={if(selected==null)editing=true else menu=true}, modifier=Modifier.width(54.dp).height(44.dp)) {
-                            Icon(LibraryGlyphs.Edit,if(selected==null)"Edit library"else"Sort library",Modifier.size(25.dp))
-                        }
-                        DropdownMenu(menu,{menu=false}) {
-                            listOf("Recent", "Title", "Artist").forEach { value ->
-                                DropdownMenuItem(text={Text(if(sort==value) "✓  $value" else value)}, onClick={sort=value;prefs.edit().putString("librarySort",value).apply();menu=false})
-                            }
-                            HorizontalDivider()
-                            DropdownMenuItem(text={Text("Edit library")},onClick={selected=null;editing=true;menu=false})
-                        }
-                    }
-                }
-                Spacer(Modifier.width(12.dp))
-                Box(Modifier.size(44.dp).clip(CircleShape).background(c.surface).border(.5.dp,c.onSurface.copy(alpha=.16f),CircleShape)
-                    .semantics { contentDescription="Account" }.clickable(enabled=actions.onAccount!=null){actions.onAccount?.invoke()},contentAlignment=Alignment.Center) {
-                    val photo=actions.account?.thumbnailUrl
-                    if(photo!=null) AsyncImage(photo,"Account",Modifier.fillMaxSize(),contentScale=ContentScale.Crop)
-                    else Text(actions.account?.name?.split(' ')?.filter{it.isNotBlank()}?.take(2)?.joinToString(""){it.take(1)}?.uppercase()?.takeIf{it.isNotBlank()} ?: "♪",
-                        style=MaterialTheme.typography.titleMedium.copy(fontSize=17.sp,fontWeight=FontWeight.SemiBold))
-                }
-                }
-            }
-            if(selected != null && !editing) Text(selected!!,
-                Modifier.fillMaxWidth().padding(start=20.dp,end=20.dp,top=17.dp,bottom=4.dp),
+    Box(Modifier.fillMaxSize().statusBarsPadding()) {
+    // The large title scrolls with the list, as on Apple's own Library and the Settings pages;
+    // only the buttons stay, over the shared top fade, with the title handed to the bar.
+    val pageTitle = if(selected == null || editing) "Library" else selected!!
+    LazyColumn(Modifier.fillMaxSize(),state=navigation.listState,contentPadding=PaddingValues(top=LIBRARY_BAR_HEIGHT,bottom=contentPadding.calculateBottomPadding())) {
+        item(key="large-title") {
+            Text(pageTitle,Modifier.fillMaxWidth().padding(start=20.dp,end=20.dp,top=if(selected != null && !editing)6.dp else 0.dp,bottom=6.dp),
                 style=MaterialTheme.typography.displayLarge.copy(fontSize=34.sp,fontWeight=FontWeight.ExtraBold,letterSpacing=(-.4).sp))
         }
-    LazyColumn(Modifier.weight(1f),state=navigation.listState,contentPadding=PaddingValues(bottom=contentPadding.calculateBottomPadding())) {
         if(selected == "Playlists") item(key="playlist-search") {
             TextField(query,{query=it},Modifier.fillMaxWidth().padding(horizontal=20.dp,vertical=8.dp),
                 placeholder={Text("Search playlists")},leadingIcon={Icon(Icons.Rounded.Search,null)},
@@ -158,6 +129,19 @@ private val categories = listOf("Playlists", "Artists", "Albums", "Songs", "Down
             }
         }
         if(selected == null) {
+            // Pins sit at the top of Apple's Library, three to a row, above the list.
+            if(!editing && pinned.isNotEmpty()) {
+                items(pinned.chunked(3),key={row->"pins-${row.first().browseId}"}) { row ->
+                    CompositionLocalProvider(com.music.streamx.ui.components.LocalCardZoomShelf provides "Pinned") {
+                        Row(Modifier.fillMaxWidth().padding(horizontal=20.dp).padding(top=4.dp,bottom=14.dp),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+                            row.forEach { entry -> AppleMusicPinnedTile(entry,{
+                                com.music.streamx.ui.components.CardZoom.open("Pinned",entry.browseId);onItem(entry,"Pinned")
+                            },{onLongPress?.invoke(entry)},Modifier.weight(1f)) }
+                            repeat(3-row.size) { Spacer(Modifier.weight(1f)) }
+                        }
+                    }
+                }
+            }
             items(order.filter { editing || it !in hidden },key={it}) { name ->
                 val index=categories.indexOf(name)
                 val visible=name !in hidden
@@ -194,6 +178,25 @@ private val categories = listOf("Playlists", "Artists", "Albums", "Songs", "Down
                     HorizontalDivider(Modifier.align(Alignment.BottomCenter).padding(start=if(editing)102.dp else 60.dp,end=20.dp),thickness=.5.dp,color=c.onSurface.copy(alpha=.18f))
                 }
             }
+            // Apple's Library ends its list with what was added lately, two to a row.
+            val recent = shelves.firstOrNull { it.title == "Recently Added" }?.items.orEmpty()
+            if(!editing && recent.isNotEmpty()) {
+                item(key="recent-title") {
+                    Text("Recently Added",Modifier.padding(start=20.dp,end=20.dp,top=28.dp,bottom=12.dp),
+                        style=MaterialTheme.typography.titleLarge.copy(fontSize=22.sp,fontWeight=FontWeight.Bold,letterSpacing=0.sp))
+                }
+                items(recent.chunked(2),key={row->"recent-${row.first().browseId ?: row.first().videoId}"}) { row ->
+                    // Each tile zooms into the page it opens, as Home's cards do.
+                    CompositionLocalProvider(com.music.streamx.ui.components.LocalCardZoomShelf provides "Recently Added") {
+                        Row(Modifier.fillMaxWidth().padding(horizontal=20.dp).padding(bottom=18.dp),horizontalArrangement=Arrangement.spacedBy(16.dp)) {
+                            row.forEach { entry -> AppleMusicRecentTile(entry,{
+                                com.music.streamx.ui.components.CardZoom.open("Recently Added",entry.browseId);onItem(entry,"Recently Added")
+                            },Modifier.weight(1f)) }
+                            if(row.size==1) Spacer(Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
         } else if(actions.loading || (collectionLoading && entries.isEmpty())) {
             items(6,key={"loading-$it"}) {
                 Row(Modifier.fillMaxWidth().padding(horizontal=20.dp,vertical=10.dp),verticalAlignment=Alignment.CenterVertically) {
@@ -214,10 +217,64 @@ private val categories = listOf("Playlists", "Artists", "Albums", "Songs", "Down
             if(selected=="Downloaded") items(links+deviceItems) { entry -> AppleMusicLibraryRow(entry,{onItem(entry,"Downloaded")},{onLongPress?.invoke(entry)}) }
         }
     }
+    val list = navigation.listState
+    val scrolledUnder by remember { derivedStateOf { list.firstVisibleItemIndex > 0 || list.firstVisibleItemScrollOffset > 0 } }
+    val titleInBar by remember { derivedStateOf { list.firstVisibleItemIndex > 0 || list.firstVisibleItemScrollOffset > 90 } }
+    val fadeAlpha by androidx.compose.animation.core.animateFloatAsState(if(scrolledUnder) 1f else 0f, label="libraryTopFade")
+    val barTitleAlpha by androidx.compose.animation.core.animateFloatAsState(if(titleInBar) 1f else 0f, label="libraryBarTitle")
+    // The bar's own material: solid behind the status bar and buttons, feathered just below,
+    // so rows pass under it rather than being cut off at its edge.
+    val statusBar = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    Box(Modifier.offset(y=-statusBar).fillMaxWidth().height(statusBar+LIBRARY_BAR_HEIGHT+20.dp).graphicsLayer{alpha=fadeAlpha}
+        .background(Brush.verticalGradient(0f to c.background,(statusBar+LIBRARY_BAR_HEIGHT)/(statusBar+LIBRARY_BAR_HEIGHT+20.dp) to c.background.copy(alpha=.94f),1f to c.background.copy(alpha=0f))))
+    // At the leading edge: the add, edit and account buttons take the trailing half of the bar.
+    Text(pageTitle,Modifier.align(Alignment.TopStart).padding(start=if(selected != null && !editing)76.dp else 20.dp,top=11.dp).height(64.dp).wrapContentHeight().graphicsLayer{alpha=barTitleAlpha},
+        style=MaterialTheme.typography.titleLarge.copy(fontWeight=FontWeight.Bold),maxLines=1)
+    Column(Modifier.padding(top=11.dp)) {
+            Row(Modifier.fillMaxWidth().padding(horizontal=20.dp).heightIn(min=if(selected != null && !editing)44.dp else 64.dp), verticalAlignment=Alignment.CenterVertically) {
+                if(selected != null && !editing) IconButton(onClick={selected=null},modifier=Modifier.size(44.dp).clip(CircleShape).background(c.surface)
+                    .border(.5.dp,c.onSurface.copy(alpha=.12f),CircleShape)) { Icon(Icons.Rounded.ArrowBack, "Library") }
+                Spacer(Modifier.weight(1f))
+                if(editing) {
+                    IconButton(onClick=::finishEditing,modifier=Modifier.size(44.dp).clip(CircleShape).background(c.primary)) {
+                        Icon(LibraryGlyphs.Check,"Done editing library",Modifier.size(25.dp),tint=Color.White)
+                    }
+                } else {
+                Row(Modifier.clip(CircleShape).background(c.surface).border(.5.dp,c.onSurface.copy(alpha=.12f),CircleShape)) {
+                    IconButton(onClick={onNewPlaylist?.invoke()}, enabled=onNewPlaylist != null, modifier=Modifier.width(54.dp).height(44.dp)) {
+                        Icon(LibraryGlyphs.Add, "New playlist", Modifier.size(25.dp))
+                    }
+                    Box {
+                        IconButton(onClick={if(selected==null)editing=true else menu=true}, modifier=Modifier.width(54.dp).height(44.dp)) {
+                            Icon(LibraryGlyphs.Edit,if(selected==null)"Edit library"else"Sort library",Modifier.size(25.dp))
+                        }
+                        DropdownMenu(menu,{menu=false}) {
+                            listOf("Recent", "Title", "Artist").forEach { value ->
+                                DropdownMenuItem(text={Text(if(sort==value) "✓  $value" else value)}, onClick={sort=value;prefs.edit().putString("librarySort",value).apply();menu=false})
+                            }
+                            HorizontalDivider()
+                            DropdownMenuItem(text={Text("Edit library")},onClick={selected=null;editing=true;menu=false})
+                        }
+                    }
+                }
+                Spacer(Modifier.width(12.dp))
+                Box(Modifier.size(44.dp).clip(CircleShape).background(c.surface).border(.5.dp,c.onSurface.copy(alpha=.16f),CircleShape)
+                    .semantics { contentDescription="Account" }.clickable(enabled=actions.onAccount!=null){actions.onAccount?.invoke()},contentAlignment=Alignment.Center) {
+                    val photo=actions.account?.thumbnailUrl
+                    if(photo!=null) AsyncImage(photo,"Account",Modifier.fillMaxSize(),contentScale=ContentScale.Crop)
+                    else Text(actions.account?.name?.split(' ')?.filter{it.isNotBlank()}?.take(2)?.joinToString(""){it.take(1)}?.uppercase()?.takeIf{it.isNotBlank()} ?: "♪",
+                        style=MaterialTheme.typography.titleMedium.copy(fontSize=17.sp,fontWeight=FontWeight.SemiBold))
+                }
+                }
+            }
+        }
     }
 }
 
-private object LibraryGlyphs {
+/** The pinned button row's height, which the list starts under. */
+private val LIBRARY_BAR_HEIGHT = 75.dp
+
+internal object LibraryGlyphs {
     private fun glyph(name:String, block: androidx.compose.ui.graphics.vector.PathBuilder.()->Unit): ImageVector =
         ImageVector.Builder(name,26.dp,26.dp,26f,26f).apply {
             path(stroke=SolidColor(Color.Black),strokeLineWidth=1.8f,strokeLineCap=StrokeCap.Round,strokeLineJoin=StrokeJoin.Round,pathBuilder=block)
@@ -268,6 +325,10 @@ private object LibraryGlyphs {
         ImageVector.Builder("library_songs_filled",26.dp,26.dp,26f,26f).apply {
             path(fill=SolidColor(Color.Black),pathBuilder=note)
         }.build(),
+        // A person in a rounded square, Apple's mark for its Made for You mixes.
+        glyph("library_made_for_you") { moveTo(7f,3f);lineTo(19f,3f);curveTo(21.5f,3f,23f,4.5f,23f,7f);lineTo(23f,19f);curveTo(23f,21.5f,21.5f,23f,19f,23f);lineTo(7f,23f);curveTo(4.5f,23f,3f,21.5f,3f,19f);lineTo(3f,7f);curveTo(3f,4.5f,4.5f,3f,7f,3f);close()
+            moveTo(16.5f,10f);arcToRelative(3.5f,3.5f,0f,true,true,-7f,0f);arcToRelative(3.5f,3.5f,0f,true,true,7f,0f)
+            moveTo(7f,20f);curveTo(8f,16.5f,10.5f,15f,13f,15f);curveTo(15.5f,15f,18f,16.5f,19f,20f) },
         glyph("library_downloaded") { moveTo(24f,13f);arcToRelative(11f,11f,0f,true,true,-22f,0f);arcToRelative(11f,11f,0f,true,true,22f,0f);moveTo(13f,6f);lineTo(13f,19f);moveTo(8f,14f);lineTo(13f,19f);lineTo(18f,14f) }
     )
 }
@@ -283,5 +344,32 @@ private object LibraryGlyphs {
             else Text(actions.account?.name?.split(' ')?.filter{it.isNotBlank()}?.take(2)?.joinToString(""){it.take(1)}?.uppercase()?.takeIf{it.isNotBlank()} ?: "♪",
                 style=MaterialTheme.typography.titleMedium.copy(fontSize=17.sp,fontWeight=FontWeight.SemiBold))
         }
+    }
+}
+
+/** One Recently Added tile: square art, then a title and a grey line, as Apple lays them out. */
+@Composable private fun AppleMusicRecentTile(item: ShelfItem, onClick: () -> Unit, modifier: Modifier) {
+    val c = MaterialTheme.colorScheme
+    Column(modifier.clickable(onClick=onClick)) {
+        Box(Modifier.cardZoomSource(item.browseId,8.dp).fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(8.dp)).background(c.surfaceVariant)) {
+            if(!item.thumbnailUrl.isNullOrBlank()) AsyncImage(item.thumbnailUrl,null,Modifier.fillMaxSize(),contentScale=ContentScale.Crop)
+        }
+        Text(item.title,Modifier.padding(top=7.dp),style=MaterialTheme.typography.bodyMedium.copy(fontSize=15.sp),maxLines=1,overflow=androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+        if(item.subtitle.isNotBlank()) Text(item.subtitle,style=MaterialTheme.typography.bodyMedium.copy(fontSize=15.sp),color=c.onSurfaceVariant,maxLines=1,overflow=androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+    }
+}
+
+/** One pin: the art (round for an artist), the name under it, as Apple's Library shows its pins. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable private fun AppleMusicPinnedTile(item: ShelfItem, onClick: () -> Unit, onLongPress: () -> Unit, modifier: Modifier) {
+    val c = MaterialTheme.colorScheme
+    val artist = item.browseId?.contains(":artist:") == true
+    val shape = if (artist) CircleShape else RoundedCornerShape(8.dp)
+    Column(modifier.combinedClickable(onClick=onClick,onLongClick=onLongPress),horizontalAlignment=Alignment.CenterHorizontally) {
+        Box(Modifier.cardZoomSource(item.browseId,if(artist)60.dp else 8.dp).fillMaxWidth().aspectRatio(1f).clip(shape).background(c.surfaceVariant)) {
+            if(!item.thumbnailUrl.isNullOrBlank()) AsyncImage(item.thumbnailUrl,null,Modifier.fillMaxSize(),contentScale=ContentScale.Crop)
+        }
+        Text(item.title,Modifier.padding(top=6.dp),style=MaterialTheme.typography.bodySmall.copy(fontSize=13.sp),maxLines=1,
+            overflow=androidx.compose.ui.text.style.TextOverflow.Ellipsis)
     }
 }

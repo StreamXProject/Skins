@@ -20,6 +20,10 @@ import androidx.compose.material.icons.rounded.*
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
@@ -29,6 +33,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import java.util.Locale
 import com.music.streamx.ui.skins.*
@@ -42,92 +48,119 @@ import com.music.streamx.ui.skins.*
     return style
 }
 @Composable internal fun appleColors(dark: Boolean)=if(dark) darkColorScheme(primary=androidx.compose.ui.graphics.Color(0xFFFA2D55),background=androidx.compose.ui.graphics.Color.Black,surface=androidx.compose.ui.graphics.Color(0xFF1C1C1E),surfaceVariant=androidx.compose.ui.graphics.Color(0xFF2C2C2E)) else lightColorScheme(primary=androidx.compose.ui.graphics.Color(0xFFD91940))
+/**
+ * The skin's one setting, how the full player shows the artwork, laid out as an
+ * iOS Settings page: a large title that hands over to the bar as it scrolls,
+ * and one inset group holding the two looks side by side, drawn with the cover
+ * that is playing so the choice is between real pictures, not placeholders.
+ */
 @Composable internal fun ApplePlayerConfiguration(onDismiss: ()->Unit) {
     val style=applePlayerStyle();val context=LocalContext.current
     val prefs=remember{context.getSharedPreferences("skin.apple-music",Context.MODE_PRIVATE)}
     val accent=Color(0xFFFA2D55)
     val list=rememberLazyListState()
+    val artwork by SkinTrackArtwork.url.collectAsState()
+    val tint=rememberSkinArtworkColor(artwork) ?: Color(0xFF6E3A4E)
     SkinBackHandler(true,onDismiss)
+    val titleUp by remember{derivedStateOf{list.firstVisibleItemIndex>0 || list.firstVisibleItemScrollOffset>48}}
+    val titleAlpha by androidx.compose.animation.core.animateFloatAsState(if(titleUp)1f else 0f,label="settingsTitle")
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding().navigationBarsPadding()) {
-        LazyColumn(Modifier.fillMaxSize(),state=list,contentPadding=PaddingValues(start=20.dp,end=20.dp,top=76.dp,bottom=28.dp),
-            verticalArrangement=Arrangement.spacedBy(20.dp)) {
+        LazyColumn(Modifier.fillMaxSize(),state=list,contentPadding=PaddingValues(top=60.dp,bottom=32.dp)) {
             item {
-                Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(14.dp)) {
-                    Box(Modifier.size(52.dp).clip(RoundedCornerShape(13.dp)).background(Color.White),contentAlignment=Alignment.Center) {
-                        Icon(Icons.Rounded.MusicNote,null,tint=accent,modifier=Modifier.size(36.dp))
-                    }
-                    Column {
-                        Text("Apple Music",style=MaterialTheme.typography.headlineLarge)
-                        Text("Appearance",style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
+                Text("Apple Music",Modifier.padding(start=20.dp,end=20.dp,top=4.dp),
+                    style=MaterialTheme.typography.displayLarge.copy(fontSize=34.sp,fontWeight=FontWeight.ExtraBold,letterSpacing=(-.4).sp))
             }
             item {
-                Text("Player artwork",style=MaterialTheme.typography.titleLarge)
-                Text("Choose how album artwork appears in the full player.",Modifier.padding(top=6.dp),style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            item {
-                Row(Modifier.fillMaxWidth().selectableGroup(),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-                    listOf("Cover" to false,"Full cover" to true).forEach{(label,full)->
-                        ArtworkChoice(label,full,style.fullCover==full,Modifier.weight(1f),accent) {
-                            prefs.edit().putBoolean("fullCover",full).apply()
+                AppleSettingsGroup("Player Artwork",
+                    if(style.fullCover)"The artwork fills the top of the player and fades into the playback controls."
+                    else "A rounded cover sits above the track details, on its colours blurred behind it.",18.dp) {
+                    Row(Modifier.fillMaxWidth().selectableGroup().padding(start=20.dp,end=20.dp,top=22.dp,bottom=18.dp),
+                        horizontalArrangement=Arrangement.spacedBy(20.dp)) {
+                        listOf("Cover" to false,"Full Cover" to true).forEach{(label,full)->
+                            ArtworkChoice(label,full,style.fullCover==full,artwork,tint,accent,Modifier.weight(1f)) {
+                                prefs.edit().putBoolean("fullCover",full).apply()
+                            }
                         }
                     }
                 }
             }
-            item {
-                Surface(shape=MaterialTheme.shapes.large,color=MaterialTheme.colorScheme.surfaceVariant) {
-                    Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
-                        Text(if(style.fullCover)"Full cover" else "Cover",style=MaterialTheme.typography.titleMedium)
-                        Text(if(style.fullCover)"Artwork fills the player and softly fades into the playback controls." else "A rounded square cover sits above the track details, with blurred artwork behind it.",
-                            style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            }
         }
-        val topFadeAlpha by remember { derivedStateOf {
-            if(list.firstVisibleItemIndex>0)1f else (list.firstVisibleItemScrollOffset/120f).coerceIn(0f,1f)
-        } }
-        AppleMusicBottomFade(Modifier.rotate(180f).graphicsLayer{alpha=topFadeAlpha},false,MaterialTheme.colorScheme.background)
-        IconButton(onClick=onDismiss,modifier=Modifier.padding(start=12.dp,top=8.dp).size(44.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)) {
+        AppleMusicBottomFade(Modifier.rotate(180f).graphicsLayer{alpha=titleAlpha},false,MaterialTheme.colorScheme.background)
+        Text("Apple Music",Modifier.align(Alignment.TopCenter).padding(top=19.dp).graphicsLayer{alpha=titleAlpha},
+            style=MaterialTheme.typography.titleMedium.copy(fontWeight=FontWeight.SemiBold))
+        IconButton(onClick=onDismiss,modifier=Modifier.padding(start=12.dp,top=4.dp).size(44.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)) {
             Icon(Icons.AutoMirrored.Rounded.ArrowBack,"Back")
         }
     }
 }
 
-@Composable private fun ArtworkChoice(label: String,full: Boolean,selected: Boolean,modifier: Modifier,accent: Color,onClick: ()->Unit) {
-    Column(modifier.selectable(selected=selected,role=Role.RadioButton,onClick=onClick),horizontalAlignment=Alignment.CenterHorizontally,
-        verticalArrangement=Arrangement.spacedBy(10.dp)) {
-        Box(Modifier.fillMaxWidth().height(230.dp).clip(RoundedCornerShape(22.dp))
-            .border(if(selected)2.dp else 1.dp,if(selected)accent else MaterialTheme.colorScheme.outlineVariant,RoundedCornerShape(22.dp))
-            .padding(7.dp).clip(RoundedCornerShape(16.dp)).background(Brush.verticalGradient(listOf(Color(0xFF89576C),Color(0xFF2A202C))))) {
-            if(full) Box(Modifier.fillMaxWidth().height(162.dp).background(Brush.linearGradient(listOf(Color(0xFFF9B274),Color(0xFFD1346D),Color(0xFF423C83)))),contentAlignment=Alignment.Center) {
-                Icon(Icons.Rounded.MusicNote,null,tint=Color.White.copy(alpha=.8f),modifier=Modifier.size(72.dp))
-                Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent,Color(0xFF392537)),startY=200f)))
+/**
+ * One look: a phone-shaped preview of the player in it, its name, and iOS's
+ * round checkmark under it. Pressing sinks the preview a little, as iOS's
+ * appearance pickers do, instead of flashing a highlight over the whole column.
+ */
+@Composable private fun ArtworkChoice(label: String,full: Boolean,selected: Boolean,artwork: String?,tint: Color,accent: Color,modifier: Modifier,onClick: ()->Unit) {
+    val press=remember{androidx.compose.foundation.interaction.MutableInteractionSource()}
+    val pressed by press.collectIsPressedAsState()
+    val scale by androidx.compose.animation.core.animateFloatAsState(if(pressed).96f else 1f,label="choicePress")
+    val ring by androidx.compose.animation.animateColorAsState(if(selected)accent else Color.Transparent,label="choiceRing")
+    val screen=RoundedCornerShape(20.dp)
+    val deep=Brush.verticalGradient(listOf(tint,androidx.compose.ui.graphics.lerp(tint,Color.Black,.62f)))
+    Column(modifier.selectable(selected=selected,role=Role.RadioButton,interactionSource=press,indication=null,onClick=onClick),
+        horizontalAlignment=Alignment.CenterHorizontally) {
+        Box(Modifier.graphicsLayer{scaleX=scale;scaleY=scale}.fillMaxWidth().aspectRatio(.5f)
+            .border(2.5.dp,ring,RoundedCornerShape(24.dp)).padding(5.dp).clip(screen).background(deep)) {
+            if(full) {
+                // The art runs edge to edge and dissolves into the player's colour.
+                // Masked rather than overlaid: a fade drawn over the art ended on a
+                // different shade from the player under it, and showed as a line.
+                Box(Modifier.fillMaxWidth().fillMaxHeight(.66f)
+                    .graphicsLayer{compositingStrategy=androidx.compose.ui.graphics.CompositingStrategy.Offscreen}
+                    .drawWithContent {
+                        drawContent()
+                        drawRect(Brush.verticalGradient(.45f to Color.Black,1f to Color.Transparent),blendMode=androidx.compose.ui.graphics.BlendMode.DstIn)
+                    }) {
+                    PreviewArt(artwork,tint,Modifier.fillMaxSize())
+                }
+            } else {
+                // Its colours, blurred, behind a rounded sleeve.
+                PreviewArt(artwork,tint,Modifier.fillMaxSize().blur(28.dp).graphicsLayer{alpha=.55f})
             }
-            Column(Modifier.fillMaxSize().padding(12.dp),horizontalAlignment=Alignment.CenterHorizontally) {
-                Box(Modifier.width(24.dp).height(3.dp).clip(CircleShape).background(Color.White.copy(alpha=.45f)))
-                Spacer(Modifier.height(12.dp))
-                if(!full) Box(Modifier.size(108.dp).clip(RoundedCornerShape(7.dp)).background(Brush.linearGradient(listOf(Color(0xFFF9B274),Color(0xFFD1346D),Color(0xFF423C83)))),contentAlignment=Alignment.Center) {
-                    Icon(Icons.Rounded.MusicNote,null,tint=Color.White.copy(alpha=.8f),modifier=Modifier.size(48.dp))
-                } else Spacer(Modifier.weight(1f))
-                Spacer(Modifier.height(10.dp))
-                Box(Modifier.fillMaxWidth(.8f).height(4.dp).clip(CircleShape).background(Color.White.copy(alpha=.85f)).align(Alignment.Start))
+            Column(Modifier.fillMaxSize().padding(horizontal=11.dp,vertical=9.dp),horizontalAlignment=Alignment.CenterHorizontally) {
+                Box(Modifier.width(20.dp).height(3.dp).clip(CircleShape).background(Color.White.copy(alpha=.5f)))
+                if(full) Spacer(Modifier.weight(1f)) else {
+                    Spacer(Modifier.height(16.dp))
+                    PreviewArt(artwork,tint,Modifier.fillMaxWidth(.86f).aspectRatio(1f).shadow(8.dp,RoundedCornerShape(7.dp)).clip(RoundedCornerShape(7.dp)))
+                    Spacer(Modifier.weight(1f))
+                }
+                Box(Modifier.fillMaxWidth(.72f).height(5.dp).clip(CircleShape).background(Color.White.copy(alpha=.9f)).align(Alignment.Start))
                 Spacer(Modifier.height(5.dp))
-                Box(Modifier.fillMaxWidth(.5f).height(3.dp).clip(CircleShape).background(Color.White.copy(alpha=.4f)).align(Alignment.Start))
-                Spacer(Modifier.height(12.dp))
-                Box(Modifier.fillMaxWidth().height(3.dp).clip(CircleShape).background(Color.White.copy(alpha=.35f)))
-                Row(Modifier.fillMaxWidth().padding(top=10.dp),horizontalArrangement=Arrangement.SpaceEvenly) {
-                    Icon(Icons.Rounded.FastRewind,null,Modifier.size(20.dp),tint=Color.White)
-                    Icon(Icons.Rounded.Pause,null,Modifier.size(23.dp),tint=Color.White)
-                    Icon(Icons.Rounded.FastForward,null,Modifier.size(20.dp),tint=Color.White)
+                Box(Modifier.fillMaxWidth(.46f).height(4.dp).clip(CircleShape).background(Color.White.copy(alpha=.45f)).align(Alignment.Start))
+                Spacer(Modifier.height(11.dp))
+                Box(Modifier.fillMaxWidth().height(3.dp).clip(CircleShape).background(Color.White.copy(alpha=.3f))) {
+                    Box(Modifier.fillMaxWidth(.38f).fillMaxHeight().background(Color.White.copy(alpha=.85f)))
+                }
+                Row(Modifier.fillMaxWidth().padding(top=12.dp,bottom=6.dp),horizontalArrangement=Arrangement.SpaceEvenly,verticalAlignment=Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.FastRewind,null,Modifier.size(17.dp),tint=Color.White)
+                    Icon(Icons.Rounded.Pause,null,Modifier.size(22.dp),tint=Color.White)
+                    Icon(Icons.Rounded.FastForward,null,Modifier.size(17.dp),tint=Color.White)
                 }
             }
         }
-        Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(5.dp)) {
-            RadioButton(selected=selected,onClick=null,colors=RadioButtonDefaults.colors(selectedColor=accent))
-            Text(label,style=MaterialTheme.typography.bodyLarge)
+        Text(label,Modifier.padding(top=12.dp),style=MaterialTheme.typography.bodyLarge.copy(fontSize=15.sp))
+        Box(Modifier.padding(top=8.dp).size(24.dp).clip(CircleShape).background(if(selected)accent else Color.Transparent)
+            .border(if(selected)0.dp else 1.5.dp,if(selected)Color.Transparent else MaterialTheme.colorScheme.onSurface.copy(alpha=.3f),CircleShape),
+            contentAlignment=Alignment.Center) {
+            if(selected) Icon(LibraryGlyphs.Check,null,Modifier.size(16.dp),tint=Color.White)
         }
+    }
+}
+
+/** The playing cover, or its colour in a soft wash when nothing is loaded yet. */
+@Composable private fun PreviewArt(artwork: String?,tint: Color,modifier: Modifier) {
+    Box(modifier.background(Brush.linearGradient(listOf(androidx.compose.ui.graphics.lerp(tint,Color.White,.25f),tint)))) {
+        if(artwork!=null) coil3.compose.AsyncImage(artwork,null,Modifier.fillMaxSize(),contentScale=androidx.compose.ui.layout.ContentScale.Crop)
+        else Icon(Icons.Rounded.MusicNote,null,Modifier.align(Alignment.Center).size(28.dp),tint=Color.White.copy(alpha=.8f))
     }
 }
 
@@ -148,7 +181,8 @@ import com.music.streamx.ui.skins.*
         }
         Surface(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-            shape = RoundedCornerShape(16.dp),
+            // iOS 26 rounds its inset groups well past the old 10pt corner.
+            shape = RoundedCornerShape(22.dp),
             color = colors.surface,
         ) {
             Column { content() }
@@ -180,10 +214,10 @@ import com.music.streamx.ui.skins.*
     val colors = MaterialTheme.colorScheme
     Row(
         modifier = Modifier.fillMaxWidth()
-            .heightIn(min = 64.dp)
+            .heightIn(min = 52.dp)
             .alpha(if (enabled) 1f else .45f)
             .then(if (onClick != null) Modifier.clickable(enabled = enabled, onClick = onClick) else Modifier)
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {

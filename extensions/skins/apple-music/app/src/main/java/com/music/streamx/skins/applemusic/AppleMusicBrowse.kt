@@ -85,8 +85,14 @@ import com.music.streamx.ui.skins.*
         HorizontalDivider(Modifier.padding(start=80.dp),thickness=.5.dp,color=MaterialTheme.colorScheme.onSurface.copy(alpha=.12f))
     }
 }
+/**
+ * iOS's scroll-edge dim, for both ends: the host draws it upside down under the
+ * status bar too. Eased so it starts unseen, and tall and dense enough at its
+ * solid end that a page's title in the top bar never sits on legible content.
+ */
 @Composable internal fun AppleMusicBottomFade(modifier: Modifier,withMiniPlayer: Boolean,pageColor: Color) {
-    Box(modifier.fillMaxWidth().height(if(withMiniPlayer)140.dp else 90.dp).background(Brush.verticalGradient(listOf(Color.Transparent,pageColor))))
+    val brush=androidx.compose.runtime.remember(pageColor){Brush.verticalGradient(colorStops=Array(12){i->val t=i/11f;t to pageColor.copy(alpha=.97f*Math.pow(t.toDouble(),1.6).toFloat())})}
+    Box(modifier.fillMaxWidth().height(if(withMiniPlayer)170.dp else 140.dp).background(brush))
 }
 @Composable internal fun AppleMusicLibraryStats(onOpen: ()->Unit){TextButton(onClick=onOpen){Text("Listening history")}}
 internal fun LazyListScope.applemusicFeedShelves(shelves: List<HomeShelf>,layout: SkinLayout,onClick: (ShelfItem,String)->Unit,
