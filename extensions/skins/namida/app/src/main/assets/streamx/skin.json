@@ -1,0 +1,21 @@
+{
+  "version": 3,
+  "renderer": { "entryPoint": "com.music.streamx.skins.namida.NamidaRenderer", "api": 1 },
+  "id": "namida",
+  "name": "Namida",
+  "author": "StreamX",
+  "dark": {
+    "background": "#16130F", "surface": "#2A241F", "surfaceVariant": "#352E27",
+    "text": "#F0E6DC", "secondary": "#B5A796", "accent": "#C9A57F"
+  },
+  "light": {
+    "background": "#EDE4DA", "surface": "#F7F1EB", "surfaceVariant": "#E4D8CB",
+    "text": "#2A231C", "secondary": "#5B5046", "accent": "#8C6A47"
+  },
+  "cornerRadiusDp": 14,
+  "fonts": { "regular": "streamx/fonts/LexendDeca-Medium.ttf", "bold": "streamx/fonts/LexendDeca-SemiBold.ttf" },
+  "layout": {
+    "icons": "EXTENSION", "home": "QUICK_ACCESS", "navigation": "FLAT", "library": "ROWS", "settings": "GROUPED", "player": "EXTENSION",
+    "artworkRadiusDp": 12, "shelfWidthDp": 136, "searchRadiusDp": 18, "miniPlayerRadiusDp": 20
+  }
+}

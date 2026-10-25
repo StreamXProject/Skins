@@ -1,5 +1,11 @@
 package com.music.streamx.ui.components
 
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.unit.sp
+import com.music.streamx.ui.skins.liquidPress
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.shadow
 import com.music.streamx.ui.skins.SkinIcon as Icon
 import com.music.streamx.sharedui.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -62,12 +68,19 @@ fun SearchField(
         onSubmit()
         focusManager.clearFocus()
     }
+    // Apple Music's field is a floating glass capsule: frosted, rimmed, fully
+    // round, swelling under a held finger like the rest of its glass.
+    val glass = com.music.streamx.ui.skins.LocalSkinRenderer.current is com.music.streamx.ui.skins.SkinArtworkPages
+    val shape = if (glass) CircleShape else RoundedCornerShape(com.music.streamx.ui.skins.LocalSkinLayout.current.searchRadiusDp.dp)
     Row(
         modifier = modifier
+            .then(if (glass) Modifier.liquidPress() else Modifier)
             .fillMaxWidth()
             // Fixed height prevents the row from growing when text is entered
-            .height(46.dp)
-            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(com.music.streamx.ui.skins.LocalSkinLayout.current.searchRadiusDp.dp))
+            .height(if (glass) 50.dp else 46.dp)
+            // Apple's field at rest is flat: one fill, no rim, no shine.
+            .then(if (glass) Modifier.clip(shape).background(appleFieldFill()) else Modifier)
+            .background(if (glass) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant, shape)
             // Asymmetric: the magnifier is a button now and wants a real touch
             // target, so it's given the room by pulling the field's own start
             // padding in rather than by pushing the glyph and the text along.
@@ -81,7 +94,7 @@ fun SearchField(
         Icon(
             Icons.Rounded.Search,
             contentDescription = stringResource(Res.string.search),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = if (glass) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
                 .size(32.dp)
                 .clip(CircleShape)
@@ -93,8 +106,8 @@ fun SearchField(
             if (query.isEmpty()) {
                 Text(
                     text = placeholder,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = if (glass) MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp) else MaterialTheme.typography.bodyLarge,
+                    color = if (glass) appleFieldHint() else MaterialTheme.colorScheme.onSurfaceVariant,
                     // A narrow field (the phone's, beside the account photo)
                     // must cut the hint short, not wrap it out of the pill.
                     maxLines = 1,
@@ -142,3 +155,12 @@ fun SearchField(
         }
     }
 }
+
+/** iOS's search field fill and its hint, measured off Apple Music: #1C1C1E / #767769 dark, #E3E3E8 / #8A8A8E light. */
+@Composable
+private fun appleFieldFill(): Color =
+    if (MaterialTheme.colorScheme.background.luminance() < .5f) Color(0xFF1C1C1E) else Color(0xFFE3E3E8)
+
+@Composable
+private fun appleFieldHint(): Color =
+    if (MaterialTheme.colorScheme.background.luminance() < .5f) Color(0xFF767769) else Color(0xFF8A8A8E)

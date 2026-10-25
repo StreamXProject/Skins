@@ -15,7 +15,7 @@ interface SkinThemeProvider {
 
 /** Reject stale APK implementations before their composables enter the host composition. */
 fun validateSkinThemeImplementation(type: Class<*>) {
-    listOf(SkinThemeProvider::class.java,SkinCompositionProvider::class.java,SkinSettingsProvider::class.java,SkinLibraryProvider::class.java,SkinSettingsPageProvider::class.java,SkinBrowseHeaderProvider::class.java).filter { it.isAssignableFrom(type) }.forEach { capability ->
+    listOf(SkinThemeProvider::class.java,SkinCompositionProvider::class.java,SkinSettingsProvider::class.java,SkinLibraryProvider::class.java,SkinSettingsPageProvider::class.java,SkinBrowseHeaderProvider::class.java,SkinBrowsePagesProvider::class.java).filter { it.isAssignableFrom(type) }.forEach { capability ->
     capability.methods.filter { java.lang.reflect.Modifier.isAbstract(it.modifiers) }.forEach { contract ->
         val implementation = type.getMethod(contract.name, *contract.parameterTypes)
         require(!java.lang.reflect.Modifier.isAbstract(implementation.modifiers)) {

@@ -1,0 +1,39 @@
+{
+  "version": 3,
+  "id": "polaroid",
+  "name": "Polaroid",
+  "author": "StreamX",
+  "renderer": {
+    "entryPoint": "com.music.streamx.skins.polaroid.PolaroidRenderer",
+    "api": 1
+  },
+  "dark": {
+    "background": "#15201B",
+    "surface": "#1E2B25",
+    "surfaceVariant": "#2A3831",
+    "text": "#EEF6F1",
+    "secondary": "#B0C2B8",
+    "accent": "#F29BB5"
+  },
+  "light": {
+    "background": "#EFF7F2",
+    "surface": "#FFFFFF",
+    "surfaceVariant": "#DDEEE4",
+    "text": "#1F2A24",
+    "secondary": "#5A6B62",
+    "accent": "#E07A9A"
+  },
+  "cornerRadiusDp": 14,
+  "layout": {
+    "icons": "EXTENSION",
+    "home": "QUICK_ACCESS",
+    "navigation": "FLAT",
+    "library": "ROWS",
+    "settings": "FLAT",
+    "player": "EXTENSION",
+    "artworkRadiusDp": 4,
+    "shelfWidthDp": 160,
+    "searchRadiusDp": 14,
+    "miniPlayerRadiusDp": 16
+  }
+}

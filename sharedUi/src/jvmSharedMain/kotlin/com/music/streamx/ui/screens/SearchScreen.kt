@@ -1,5 +1,18 @@
 package com.music.streamx.ui.screens
 
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import com.music.streamx.ui.skins.liquidPress
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.drawBehind
 import com.music.streamx.ui.skins.SkinIcon as Icon
 import com.music.streamx.ui.components.contextClick
 import androidx.compose.ui.unit.Dp
@@ -166,7 +179,17 @@ fun SearchScreen(
     sourceSwitcher: (@Composable () -> Unit)? = null,
     extensionCategories: List<com.music.streamx.data.model.ShelfItem> = emptyList(),
     onExtensionCategoryClick: (com.music.streamx.data.model.ShelfItem) -> Unit = {},
+    /**
+     * Apple's own header: the large title and account, the field under it with
+     * a ✕ to leave while searching, and Plugin | Library only while typing.
+     * [appleSources] are the two names, [appleSource] which is picked.
+     */
+    appleAccount: (@Composable () -> Unit)? = null,
+    appleSourceSwitch: (@Composable () -> Unit)? = null,
 ) {
+    val appleSearch = com.music.streamx.ui.skins.LocalSkinRenderer.current is com.music.streamx.ui.skins.SkinArtworkPages
+    // Apple's field in use: focused, or holding a query. Its recents show only then.
+    var appleActive by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -204,13 +227,22 @@ fun SearchScreen(
             if (!loadingMore && total > 0 && lastVisible >= total - 4) onLoadMore()
         }
     }
-    Column(modifier = modifier.fillMaxSize()) {
+    // Apple's head floats over the list on frosted glass rather than sitting above it.
+    val appleHead = appleSearch && appleAccount != null
+    val glassBackdrop = if (appleHead) com.music.streamx.ui.skins.LocalSkinGlassFactory.current() else null
+    var appleHeadPx by remember { mutableStateOf(0) }
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val appleScrolled by remember(listState) { derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0 } }
+    val frostAlpha by androidx.compose.animation.core.animateFloatAsState(if (appleScrolled) 1f else 0f, label = "searchFrost")
+    Box(modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize()) {
         // Search field and filter tabs stay fixed at the top, outside the
         // scrolling list, so they're always reachable rather than scrolling
         // away with the results or recent searches beneath them.
         // The FrostedTopBar is visible on this tab (showing "Search"), so we
         // clear it fully — status bar inset + bar height + breathing gap — so
         // the search field sits cleanly below the bar instead of overlapping it.
+        if (!appleHead)
         Column(modifier = Modifier.padding(top = topPadding)) {
             if (showField) {
                 SearchField(
@@ -250,8 +282,11 @@ fun SearchScreen(
 
         LazyColumn(
             state = listState,
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding()),
+            modifier = Modifier.weight(1f).fillMaxWidth().then(glassBackdrop?.source ?: Modifier),
+            contentPadding = PaddingValues(
+                top = if (appleHead) with(density) { appleHeadPx.toDp() } else 0.dp,
+                bottom = contentPadding.calculateBottomPadding(),
+            ),
         ) {
             when {
                 searchingLibrary || searchingAddons -> librarySearchResults(
@@ -292,10 +327,24 @@ fun SearchScreen(
                         )
                     }
                 }
+                // Apple's landing is the categories alone, untitled; the field in use is the recents alone.
+                results == null && appleSearch && appleActive -> {
+                    if(history.isNotEmpty()) recentSearches(history,currentSong,isPlaying,onHistoryClick,onHistoryRemove,onHistoryClear)
+                }
+                results == null && appleSearch -> {
+                    items(extensionCategories.chunked(2)) { pair ->
+                        Row(Modifier.fillMaxWidth().padding(horizontal=PAGE_GUTTER,vertical=6.dp),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+                            pair.forEach { entry -> BrowseCategoryTile(entry,{onExtensionCategoryClick(entry)},null,Modifier.weight(1f)) }
+                            if(pair.size==1) Spacer(Modifier.weight(1f))
+                        }
+                    }
+                }
                 results == null -> {
                     if(history.isNotEmpty()) recentSearches(history,currentSong,isPlaying,onHistoryClick,onHistoryRemove,onHistoryClear)
                     if(extensionCategories.isNotEmpty()) {
-                        item { Text("Browse all",style=MaterialTheme.typography.headlineSmall,modifier=Modifier.padding(horizontal=PAGE_GUTTER,vertical=16.dp)) }
+                        // Apple Music calls this grid "Browse Categories".
+                        item { Text(if(com.music.streamx.ui.skins.LocalSkinRenderer.current is com.music.streamx.ui.skins.SkinArtworkPages) "Browse Categories" else "Browse all",
+                            style=MaterialTheme.typography.headlineSmall,modifier=Modifier.padding(horizontal=PAGE_GUTTER,vertical=16.dp)) }
                         items(extensionCategories.chunked(2)) { pair ->
                             Row(Modifier.fillMaxWidth().padding(horizontal=PAGE_GUTTER,vertical=6.dp),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
                                 pair.forEach { entry -> BrowseCategoryTile(entry,{onExtensionCategoryClick(entry)},null,Modifier.weight(1f)) }
@@ -316,7 +365,44 @@ fun SearchScreen(
                         } }
                     val isCurrentRow = playingRowMatcher(tracks, currentSong)
                     val topResult = results.data.filterIsInstance<SearchResult.TopTrack>().firstOrNull()
-                    if (filter == SearchFilter.ALL && topResult != null) {
+                    if (appleSearch) {
+                        // Apple's results are one list in the order they rank, songs,
+                        // artists, albums and playlists mixed, each saying what it is.
+                        val rows = results.data
+                        itemsIndexed(rows, key = { index, row -> "apple:$index:" + when (row) {
+                            is SearchResult.TopTrack -> row.song.videoId
+                            is SearchResult.Track -> row.song.videoId
+                            is SearchResult.Browse -> row.item.browseId
+                        } }) { index, row ->
+                            val last = index == rows.lastIndex
+                            when (row) {
+                                is SearchResult.TopTrack, is SearchResult.Track -> {
+                                    val song = if (row is SearchResult.TopTrack) row.song else (row as SearchResult.Track).song
+                                    AppleSearchRow(song.thumbnailUrl, song.title, "Song · " + song.artist, false, true,
+                                        isCurrentRow(song), !last,
+                                        { onSongClick(tracks, tracks.indexOf(song).coerceAtLeast(0)) }, { onSongLongPress(song) })
+                                }
+                                is SearchResult.Browse -> {
+                                    val type = when (row.item.type) {
+                                        BrowseType.ARTIST -> "Artist"
+                                        BrowseType.ALBUM -> "Album"
+                                        BrowseType.PLAYLIST -> "Playlist"
+                                        else -> null
+                                    }
+                                    val sub = row.item.subtitle.takeIf { it.isNotBlank() }
+                                    val line = when {
+                                        type == null -> sub.orEmpty()
+                                        sub == null || sub.equals(type, true) -> type
+                                        sub.startsWith(type, true) -> sub
+                                        else -> "$type · $sub"
+                                    }
+                                    AppleSearchRow(row.item.thumbnailUrl, row.item.title, line, row.item.type == BrowseType.ARTIST, false,
+                                        false, !last, { onBrowseClick(row.item) }, onBrowseLongPress?.let { { it(row.item) } })
+                                }
+                            }
+                        }
+                    }
+                    if (!appleSearch && filter == SearchFilter.ALL && topResult != null) {
                         item(key = "search:top-result:${topResult.song.videoId}") {
                             TopResultCard(
                                 song = topResult.song,
@@ -326,7 +412,7 @@ fun SearchScreen(
                             )
                         }
                     }
-                    searchSections(results.data, filter).forEach { section ->
+                    if (!appleSearch) searchSections(results.data, filter).forEach { section ->
                         section.title?.let { title ->
                             item(key = "search-section:$title") {
                                 Text(
@@ -391,6 +477,15 @@ fun SearchScreen(
                 }
             }
         }
+    }
+    if (appleHead) Box(Modifier.fillMaxWidth().onSizeChanged { appleHeadPx = it.height }) {
+        // Frosted once something passes beneath it, as Apple's bar is; clear at rest.
+        Box(Modifier.matchParentSize().graphicsLayer { alpha = frostAlpha }
+            .then(glassBackdrop?.frost(MaterialTheme.colorScheme.background) ?: Modifier.background(MaterialTheme.colorScheme.background.copy(alpha = .94f))))
+        AppleSearchHeader(query, onQueryChange, onSubmit, focusRequester, appleAccount!!, listState, appleSourceSwitch, { appleActive = it },
+            showTabs = results != null && !suggesting && !searchingLibrary && !searchingAddons,
+            tabs = { SearchFilterTabs(filter = filter, onFilterChange = onFilterChange, supportsVideos = supportsVideos, tracksOnly = tracksOnly) })
+    }
     }
 }
 
@@ -775,7 +870,8 @@ private fun LazyListScope.recentSearches(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = stringResource(Res.string.recent_searches),
+                text = if (com.music.streamx.ui.skins.LocalSkinRenderer.current is com.music.streamx.ui.skins.SkinArtworkPages) "Recently Searched"
+                    else stringResource(Res.string.recent_searches),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.weight(1f),
@@ -817,7 +913,8 @@ private fun LazyListScope.recentAddonSearches(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = stringResource(Res.string.recent_searches),
+                text = if (com.music.streamx.ui.skins.LocalSkinRenderer.current is com.music.streamx.ui.skins.SkinArtworkPages) "Recently Searched"
+                    else stringResource(Res.string.recent_searches),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.weight(1f),
@@ -1004,8 +1101,27 @@ private fun SearchFilterTabs(filter: SearchFilter, onFilterChange: (SearchFilter
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SearchFilter.entries.filter { (!tracksOnly || it == SearchFilter.ALL || it == SearchFilter.SONGS) && (supportsVideos || it != SearchFilter.VIDEOS) }.forEach { entry ->
+        val apple = com.music.streamx.ui.skins.LocalSkinRenderer.current is com.music.streamx.ui.skins.SkinArtworkPages
+        // Apple's own order: what people look for first, then the rest.
+        val order = if (apple) listOf("ALL", "ARTISTS", "ALBUMS", "SONGS", "PLAYLISTS") else emptyList()
+        SearchFilter.entries.sortedBy { order.indexOf(it.name).let { i -> if (i < 0) 99 else i } }.filter { (!tracksOnly || it == SearchFilter.ALL || it == SearchFilter.SONGS) && (supportsVideos || it != SearchFilter.VIDEOS) }.forEach { entry ->
             val selected = entry == filter
+            // Apple's strip: plain words, the chosen one on a capsule of the accent.
+            if (apple) {
+                Text(
+                    text = if (entry == SearchFilter.ALL) "Top Results" else entry.label,
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                        .clickable { if (!selected) haptics.play(Haptic.Select); onFilterChange(entry) }
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                    fontSize = 17.sp,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (selected) Color.White else MaterialTheme.colorScheme.onBackground,
+                    maxLines = 1,
+                )
+                return@forEach
+            }
             Box(
                 modifier = Modifier
                     .clip(FILTER_PILL_SHAPE)
@@ -1036,3 +1152,112 @@ private fun SearchFilterTabs(filter: SearchFilter, onFilterChange: (SearchFilter
 
 /** Rounded, but well short of a capsule — the corner reads as a cut, not a curve. */
 private val FILTER_PILL_SHAPE = RoundedCornerShape(12.dp)
+
+/**
+ * One row of Apple Music's results: the artwork (round for an artist), the
+ * name, a grey line saying what it is and by whom, and ••• for a song or a
+ * chevron for anything that opens a page. The hairline starts under the words.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun AppleSearchRow(
+    art: String?,
+    title: String,
+    subtitle: String,
+    round: Boolean,
+    song: Boolean,
+    current: Boolean,
+    divider: Boolean,
+    onClick: () -> Unit,
+    onMore: (() -> Unit)?,
+) {
+    val hairline = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f)
+    val shape = if (round) CircleShape else RoundedCornerShape(6.dp)
+    Row(
+        Modifier.fillMaxWidth()
+            .longPressMenuClickable(onClick = onClick, onLongClick = onMore)
+            .drawBehind {
+                if (divider) {
+                    val start = (PAGE_GUTTER + 55.dp + 15.dp).toPx()
+                    drawLine(hairline, androidx.compose.ui.geometry.Offset(start, size.height),
+                        androidx.compose.ui.geometry.Offset(size.width, size.height), 0.5.dp.toPx())
+                }
+            }
+            .padding(start = PAGE_GUTTER, end = 6.dp, top = 10.dp, bottom = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AsyncImage(art.artworkAt(ROW_ART_PX), null, contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            modifier = Modifier.size(55.dp).clip(shape).thumbnailBorder(shape).background(MaterialTheme.colorScheme.surfaceVariant))
+        Spacer(Modifier.width(15.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, fontSize = 17.sp, color = if (current) PlayingAccent else MaterialTheme.colorScheme.onBackground,
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(subtitle, fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        if (song) {
+            if (onMore != null) RowMoreButton(onClick = onMore, hang = false, tint = MaterialTheme.colorScheme.onBackground)
+        } else {
+            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, Modifier.padding(end = 8.dp).size(26.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/**
+ * Apple Music's search head. At rest: "Search" large, the account beside it,
+ * the field under them. Scrolled, the title goes and the field floats on liquid
+ * glass. Typing: the title gives way, a ✕ beside the field leaves the search,
+ * and a two-way switch picks where to look.
+ */
+@Composable
+private fun AppleSearchHeader(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+    focusRequester: FocusRequester,
+    account: @Composable () -> Unit,
+    listState: LazyListState,
+    sourceSwitch: (@Composable () -> Unit)?,
+    onActive: (Boolean) -> Unit,
+    showTabs: Boolean,
+    tabs: @Composable () -> Unit,
+) {
+    var focused by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
+    val active = focused || query.isNotEmpty()
+    LaunchedEffect(active) { onActive(active) }
+    val scrolled by remember(listState) { derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 8 } }
+    Column(Modifier.fillMaxWidth().statusBarsPadding()) {
+        AnimatedVisibility(!active && !scrolled, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
+            Row(Modifier.fillMaxWidth().padding(start = PAGE_GUTTER, end = PAGE_GUTTER, top = 10.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                Text("Search", Modifier.weight(1f), fontSize = 34.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+                account()
+            }
+        }
+        Row(Modifier.fillMaxWidth().padding(start = PAGE_GUTTER, end = PAGE_GUTTER, top = if (active || scrolled) 8.dp else 0.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            SearchField(
+                query = query,
+                onQueryChange = onQueryChange,
+                onSubmit = onSubmit,
+                focusRequester = focusRequester,
+                placeholder = "Artists, Songs, Lyrics and More",
+                modifier = Modifier.weight(1f).onFocusChanged { focused = it.isFocused },
+            )
+            AnimatedVisibility(active, enter = fadeIn() + androidx.compose.animation.expandHorizontally(),
+                exit = fadeOut() + androidx.compose.animation.shrinkHorizontally()) {
+                Box(Modifier.padding(start = 10.dp).size(50.dp).liquidPress()
+                    .clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .85f))
+                    .clickable { onQueryChange(""); focusManager.clearFocus() },
+                    contentAlignment = Alignment.Center) {
+                    Icon(Icons.Rounded.Close, "Cancel", Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onBackground)
+                }
+            }
+        }
+        if (sourceSwitch != null) AnimatedVisibility(active && !showTabs, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
+            Box(Modifier.padding(start = PAGE_GUTTER, end = PAGE_GUTTER, bottom = 6.dp)) { sourceSwitch() }
+        }
+        if (showTabs) tabs()
+    }
+}

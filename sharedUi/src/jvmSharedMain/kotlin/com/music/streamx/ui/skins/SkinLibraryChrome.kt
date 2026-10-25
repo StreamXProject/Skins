@@ -32,3 +32,6 @@ interface SkinFeedHeaderProvider {
     @androidx.compose.runtime.Composable
     fun FeedHeader(title: String,actions: SkinLibraryActions)
 }
+
+/** A HomeHeader that owns the full width and natural height of the home toolbar. */
+interface SkinHomeHeaderChrome

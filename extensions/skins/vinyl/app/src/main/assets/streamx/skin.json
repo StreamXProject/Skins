@@ -1,0 +1,39 @@
+{
+  "version": 3,
+  "id": "vinyl",
+  "name": "Vinyl",
+  "author": "StreamX",
+  "renderer": {
+    "entryPoint": "com.music.streamx.skins.vinyl.VinylRenderer",
+    "api": 1
+  },
+  "dark": {
+    "background": "#1C1714",
+    "surface": "#27201C",
+    "surfaceVariant": "#342B25",
+    "text": "#F4ECE0",
+    "secondary": "#C2B4A3",
+    "accent": "#E08A5C"
+  },
+  "light": {
+    "background": "#F5EDE0",
+    "surface": "#FBF6EC",
+    "surfaceVariant": "#EADFCB",
+    "text": "#2B2118",
+    "secondary": "#6A5A4B",
+    "accent": "#B4532A"
+  },
+  "cornerRadiusDp": 18,
+  "layout": {
+    "icons": "EXTENSION",
+    "home": "QUICK_ACCESS",
+    "navigation": "FLAT",
+    "library": "ROWS",
+    "settings": "FLAT",
+    "player": "EXTENSION",
+    "artworkRadiusDp": 10,
+    "shelfWidthDp": 160,
+    "searchRadiusDp": 18,
+    "miniPlayerRadiusDp": 22
+  }
+}

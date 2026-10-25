@@ -1,5 +1,6 @@
 package com.music.streamx.skins.applemusic
 
+import com.music.streamx.ui.components.longPressMenuClickable
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
@@ -33,11 +34,11 @@ import com.music.streamx.ui.skins.*
             Text(song.title,style=MaterialTheme.typography.titleMedium,maxLines=1,overflow=TextOverflow.Ellipsis)
             Text(song.artist,style=MaterialTheme.typography.bodySmall,color=c.onSurfaceVariant,maxLines=1,overflow=TextOverflow.Ellipsis)
         }
-        IconButton(onClick={if(locked)onBlocked()else onPlayPause()}) {
+        IconButton(onClick={if(locked)onBlocked()else onPlayPause()},modifier=Modifier.liquidPress(!locked)) {
             if(loading)CircularProgressIndicator(Modifier.size(22.dp),strokeWidth=2.dp,color=c.onSurface)
             else Icon(if(playing)AppleIcons.Pause else AppleIcons.Play,if(playing)"Pause"else"Play",Modifier.size(29.dp))
         }
-        IconButton(onClick={if(locked)onBlocked()else onNext()}){Icon(AppleIcons.Next,"Next",Modifier.size(28.dp))}
+        IconButton(onClick={if(locked)onBlocked()else onNext()},modifier=Modifier.liquidPress(!locked)){Icon(AppleIcons.Next,"Next",Modifier.size(28.dp))}
     }
 }
 @Composable internal fun AppleMusicHomeHeader(account: Account?,onAccount: ()->Unit,onLocal: ()->Unit,onHistory: ()->Unit,onExplore: ()->Unit) {
@@ -50,10 +51,10 @@ import com.music.streamx.ui.skins.*
         Text(page.title,Modifier.padding(16.dp),style=MaterialTheme.typography.headlineSmall)
         Text(page.subtitle,color=MaterialTheme.colorScheme.onSurfaceVariant)
         Row(Modifier.padding(12.dp),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-            TextButton(onClick=onPlay){Icon(AppleIcons.Play,null);Text("Play")}
-            IconButton(onClick=onShuffle){Icon(Icons.Rounded.Shuffle,"Shuffle")}
-            IconButton(onClick=onSearch){Icon(Icons.Rounded.Search,"Search tracks")}
-            onMore?.let{IconButton(onClick={it(songs)}){Icon(Icons.Rounded.MoreHoriz,"More")}}
+            TextButton(onClick=onPlay,modifier=Modifier.liquidPress()){Icon(AppleIcons.Play,null);Text("Play")}
+            IconButton(onClick=onShuffle,modifier=Modifier.liquidPress()){Icon(Icons.Rounded.Shuffle,"Shuffle")}
+            IconButton(onClick=onSearch,modifier=Modifier.liquidPress()){Icon(Icons.Rounded.Search,"Search tracks")}
+            onMore?.let{IconButton(onClick={it(songs)},modifier=Modifier.liquidPress()){Icon(Icons.Rounded.MoreHoriz,"More")}}
         }
     }
 }
@@ -68,7 +69,7 @@ import com.music.streamx.ui.skins.*
 @OptIn(ExperimentalFoundationApi::class)
 @Composable internal fun AppleMusicLibraryRow(item: ShelfItem,onClick: ()->Unit,onLongPress: ()->Unit) {
     Column {
-        Row(Modifier.fillMaxWidth().combinedClickable(onClick=onClick,onLongClick=onLongPress).padding(horizontal=20.dp,vertical=10.dp),verticalAlignment=Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().longPressMenuClickable(onClick=onClick,onLongClick=onLongPress).padding(horizontal=20.dp,vertical=10.dp),verticalAlignment=Alignment.CenterVertically) {
             val artworkPrefs=androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("playlist-artwork",android.content.Context.MODE_PRIVATE)
             val artwork=item.browseId?.let {artworkPrefs.getString(it,null)} ?: item.thumbnailUrl
             val artist=item.browseId?.contains(":artist:")==true
@@ -117,7 +118,7 @@ internal fun LazyListScope.applemusicFeedShelves(shelves: List<HomeShelf>,layout
     val artwork=item.browseId?.let {prefs.getString(it,null)} ?: item.thumbnailUrl
     val hue=remember(item.browseId,item.title) { ((item.browseId ?: item.title).hashCode().toLong() and 0x7fffffff).rem(360).toFloat() }
     Column {
-        Row(Modifier.fillMaxWidth().combinedClickable(onClick=onClick,onLongClick=onLongPress)
+        Row(Modifier.fillMaxWidth().longPressMenuClickable(onClick=onClick,onLongClick=onLongPress)
             .padding(horizontal=20.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically) {
             Box(Modifier.size(64.dp).clip(RoundedCornerShape(6.dp)).background(
                 Brush.linearGradient(listOf(Color.hsv(hue,.22f,.85f),Color.hsv(hue,.35f,.22f))))) {

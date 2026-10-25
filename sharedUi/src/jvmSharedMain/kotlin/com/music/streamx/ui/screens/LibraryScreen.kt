@@ -470,8 +470,10 @@ fun LibraryGridPage(
                     )
                 }
             }
-            itemsIndexed(sortedShelf.items, key = { index, item -> "$index:${item.browseId ?: item.title}" }) { _, item ->
-                ShelfCard(
+            itemsIndexed(sortedShelf.items, key = { index, item -> "$index:${item.browseId ?: item.title}" }) { index, item ->
+                val browseSkin = LocalSkinRenderer.current as? SkinBrowsePagesProvider
+                if (browseSkin != null) browseSkin.BrowseCard(item, index, true, { onItemClick(item) }, { onItemLongPress(item) }, Modifier.fillMaxWidth())
+                else ShelfCard(
                     item = item,
                     onClick = { onItemClick(item) },
                     onLongPress = { onItemLongPress(item) },

@@ -12,7 +12,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInWindow
@@ -32,6 +37,8 @@ import kotlinx.coroutines.launch
 class HeldItem internal constructor(
     /** The item's bounds in window coordinates. */
     val bounds: Rect,
+    /** The same bounds on the screen, for a menu drawn in a window of its own. */
+    val screenBounds: Rect = bounds,
 ) {
     var image: ImageBitmap? by mutableStateOf(null)
         internal set
@@ -93,8 +100,9 @@ fun Modifier.longPressMenuClickable(
     val longClick = onLongClick?.let { held ->
         {
             capture.coordinates?.takeIf { it.isAttached }?.let { coordinates ->
-                val item = HeldItem(coordinates.boundsInWindow())
+                val item = HeldItem(coordinates.boundsInWindow(), coordinates.screenRect())
                 LongPressOrigin.record(item)
+                HeldPointer.holding()
                 capture.pending = item
                 capture.requests++
             }
@@ -103,6 +111,31 @@ fun Modifier.longPressMenuClickable(
     }
     return this
         .onPlaced { capture.coordinates = it }
+        // After a hold, the same finger goes on to choose from the menu it
+        // opened: its position is passed to [HeldPointer] until it lifts, and
+        // the list under the menu is kept from scrolling with it.
+        .then(if (longClick == null) Modifier else Modifier.pointerInput(Unit) {
+            awaitEachGesture {
+                awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                val before = capture.requests
+                while (true) {
+                    val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull() ?: run {
+                        if (capture.requests != before) HeldPointer.release(null)
+                        null
+                    } ?: break
+                    if (capture.requests != before) {
+                        val at = capture.coordinates?.takeIf { it.isAttached }?.localToScreen(change.position)
+                        if (!change.pressed) {
+                            HeldPointer.release(at)
+                            break
+                        }
+                        if (change.position != change.previousPosition) change.consume()
+                        HeldPointer.move(at)
+                    }
+                    if (!change.pressed) break
+                }
+            }
+        })
         .combinedClickable(enabled = enabled, onClick = onClick, onLongClick = longClick)
         .drawWithContent {
             drawContent()
@@ -125,6 +158,39 @@ fun Modifier.longPressMenuClickable(
         }
 }
 
+/**
+ * The finger that held an item, while it stays down, in screen coordinates —
+ * for the menu the hold opened to follow it, light the row under it, and run
+ * the row it lifts off, as iOS's menus do. [releases] counts each lift, so a
+ * menu tells its own finger's lift from one that came before it opened.
+ */
+object HeldPointer {
+    var position by mutableStateOf<Offset?>(null)
+        private set
+    var releasedAt by mutableStateOf<Offset?>(null)
+        private set
+    var releases by mutableIntStateOf(0)
+        private set
+    /** Whether a hold is under way — the finger that opened a menu is still down. */
+    var isDown = false
+        private set
+
+    internal fun holding() {
+        isDown = true
+    }
+
+    internal fun move(at: Offset?) {
+        position = at
+    }
+
+    internal fun release(at: Offset?) {
+        isDown = false
+        position = null
+        releasedAt = at
+        releases++
+    }
+}
+
 private class HoldCapture {
     var coordinates: LayoutCoordinates? = null
     var pending: HeldItem? = null
@@ -132,3 +198,23 @@ private class HoldCapture {
     var requests by mutableIntStateOf(0)
     var handled = 0
 }
+
+/** This node's bounds on the screen. */
+fun LayoutCoordinates.screenRect(): Rect {
+    val origin = localToScreen(Offset.Zero)
+    return Rect(origin, androidx.compose.ui.geometry.Size(size.width.toFloat(), size.height.toFloat()))
+}
+
+/** The rows of an open held menu by where they are on screen, for the finger still down from the hold. */
+@Stable
+class HeldMenuTargets {
+    val rows = androidx.compose.runtime.mutableStateMapOf<Any, Pair<Rect, () -> Unit>>()
+    /** A finger pressed on the menu itself, on the screen, while it is down. */
+    var local by mutableStateOf<Offset?>(null)
+    val hovered: Any? by androidx.compose.runtime.derivedStateOf {
+        val at = local ?: HeldPointer.position ?: return@derivedStateOf null
+        rows.entries.firstOrNull { it.value.first.contains(at) }?.key
+    }
+}
+
+val LocalHeldMenuTargets = androidx.compose.runtime.staticCompositionLocalOf<HeldMenuTargets?> { null }

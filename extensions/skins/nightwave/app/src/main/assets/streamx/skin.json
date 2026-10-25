@@ -1,0 +1,39 @@
+{
+  "version": 3,
+  "id": "nightwave",
+  "name": "Nightwave",
+  "author": "StreamX",
+  "renderer": {
+    "entryPoint": "com.music.streamx.skins.nightwave.NightwaveRenderer",
+    "api": 1
+  },
+  "dark": {
+    "background": "#000000",
+    "surface": "#0E0E12",
+    "surfaceVariant": "#1A1A22",
+    "text": "#F3F1FA",
+    "secondary": "#AFABC2",
+    "accent": "#B9A7FF"
+  },
+  "light": {
+    "background": "#F6F4FF",
+    "surface": "#FFFFFF",
+    "surfaceVariant": "#E9E5FA",
+    "text": "#1A1730",
+    "secondary": "#5C5776",
+    "accent": "#6B55D6"
+  },
+  "cornerRadiusDp": 22,
+  "layout": {
+    "icons": "EXTENSION",
+    "home": "QUICK_ACCESS",
+    "navigation": "FLAT",
+    "library": "ROWS",
+    "settings": "FLAT",
+    "player": "EXTENSION",
+    "artworkRadiusDp": 16,
+    "shelfWidthDp": 160,
+    "searchRadiusDp": 22,
+    "miniPlayerRadiusDp": 28
+  }
+}

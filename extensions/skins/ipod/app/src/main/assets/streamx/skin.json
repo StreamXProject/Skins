@@ -1,0 +1,39 @@
+{
+  "version": 3,
+  "id": "ipod",
+  "name": "iPod Classic",
+  "author": "StreamX",
+  "renderer": {
+    "entryPoint": "com.music.streamx.skins.ipod.IpodClassicRenderer",
+    "api": 1
+  },
+  "dark": {
+    "background": "#0F1114",
+    "surface": "#1A1D22",
+    "surfaceVariant": "#272B31",
+    "text": "#F2F4F7",
+    "secondary": "#AEB6C2",
+    "accent": "#7FB0FF"
+  },
+  "light": {
+    "background": "#F4F5F7",
+    "surface": "#FFFFFF",
+    "surfaceVariant": "#E6E8EC",
+    "text": "#1A1D22",
+    "secondary": "#5A6270",
+    "accent": "#2F6FE0"
+  },
+  "cornerRadiusDp": 14,
+  "layout": {
+    "icons": "EXTENSION",
+    "home": "QUICK_ACCESS",
+    "navigation": "FLAT",
+    "library": "ROWS",
+    "settings": "FLAT",
+    "player": "EXTENSION",
+    "artworkRadiusDp": 8,
+    "shelfWidthDp": 160,
+    "searchRadiusDp": 14,
+    "miniPlayerRadiusDp": 18
+  }
+}

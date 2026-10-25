@@ -1,0 +1,39 @@
+{
+  "version": 3,
+  "id": "wave",
+  "name": "Wave",
+  "author": "StreamX",
+  "renderer": {
+    "entryPoint": "com.music.streamx.skins.wave.WaveRenderer",
+    "api": 1
+  },
+  "dark": {
+    "background": "#0C120E",
+    "surface": "#121A14",
+    "surfaceVariant": "#1B261E",
+    "text": "#E8F2EA",
+    "secondary": "#A4BCAA",
+    "accent": "#7ED9A6"
+  },
+  "light": {
+    "background": "#EEF5F0",
+    "surface": "#FFFFFF",
+    "surfaceVariant": "#DCEADF",
+    "text": "#14211A",
+    "secondary": "#4F6557",
+    "accent": "#1F8A5B"
+  },
+  "cornerRadiusDp": 8,
+  "layout": {
+    "icons": "EXTENSION",
+    "home": "QUICK_ACCESS",
+    "navigation": "FLAT",
+    "library": "ROWS",
+    "settings": "FLAT",
+    "player": "EXTENSION",
+    "artworkRadiusDp": 4,
+    "shelfWidthDp": 160,
+    "searchRadiusDp": 8,
+    "miniPlayerRadiusDp": 10
+  }
+}

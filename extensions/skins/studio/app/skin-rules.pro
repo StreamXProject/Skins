@@ -1,0 +1,3 @@
+-keep class com.music.streamx.skins.studio.StudioRenderer { public *; }
+-keep class com.music.streamx.skins.common.** { public *; }
+-keepattributes Signature,InnerClasses,EnclosingMethod

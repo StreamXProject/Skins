@@ -31,6 +31,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DownloadDone
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.PlaylistAdd
@@ -109,7 +110,7 @@ import androidx.compose.foundation.border
  * edge, which every other page now shares, so a track row, a card or a
  * heading starts at the same place whichever page it is on.
  */
-val PAGE_GUTTER = 16.dp
+val PAGE_GUTTER = 20.dp // Apple Music's 20pt page margin
 
 /**
  * The inset the floating chrome sits at: the mini player, the tab bar and the
@@ -654,17 +655,24 @@ fun RowMoreButton(
     modifier: Modifier = Modifier,
     tint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     iconSize: Dp = 20.dp,
+    /** Hang the glyph out into the page gutter; off where the row ends short of it. */
+    hang: Boolean = true,
 ) {
     Box(
         modifier = modifier
-            .hangIntoGutter(ROW_MORE_OUTSET)
+            .then(if (hang) Modifier.hangIntoGutter(ROW_MORE_OUTSET) else Modifier)
             .size(36.dp)
             .clip(CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            Icons.Rounded.MoreVert,
+            // Apple lays its dots across, iOS-fashion.
+            if (com.music.streamx.ui.skins.LocalSkinRenderer.current is com.music.streamx.ui.skins.SkinArtworkPages) {
+                Icons.Rounded.MoreHoriz
+            } else {
+                Icons.Rounded.MoreVert
+            },
             contentDescription = stringResource(Res.string.more),
             tint = tint,
             modifier = Modifier.size(iconSize),

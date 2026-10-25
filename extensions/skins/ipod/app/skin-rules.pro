@@ -1,0 +1,3 @@
+-keep class com.music.streamx.skins.ipod.IpodClassicRenderer { public *; }
+-keep class com.music.streamx.skins.common.** { public *; }
+-keepattributes Signature,InnerClasses,EnclosingMethod

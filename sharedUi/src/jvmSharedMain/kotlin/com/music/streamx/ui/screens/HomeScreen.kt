@@ -1,5 +1,6 @@
 package com.music.streamx.ui.screens
 
+import androidx.compose.ui.draw.drawBehind
 import com.music.streamx.ui.skins.SkinIcon as Icon
 import com.music.streamx.ui.components.contextClick
 import com.music.streamx.ui.AppUi
@@ -43,6 +44,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import kotlinx.coroutines.flow.first
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -96,6 +99,15 @@ import com.music.streamx.ui.components.thumbnailBorder
 import com.music.streamx.ui.components.trackColumnWidth
 import com.music.streamx.ui.player.MeshGradientBackground
 import com.music.streamx.ui.player.MeshPalette
+import com.music.streamx.ui.components.CardZoom
+import com.music.streamx.ui.components.LocalCardZoomShelf
+import com.music.streamx.ui.components.cardZoomSource
+import com.music.streamx.ui.player.CanvasArtworkPlayer
+import com.music.streamx.ui.player.PlayerSettings
+import com.music.streamx.data.canvas.CanvasArtwork
+import com.music.streamx.data.canvas.ShelfMotion
+import com.music.streamx.data.canvas.ShelfHero
+import com.music.streamx.data.canvas.ShelfHeroArt
 
 /** How far the Listen now heading and feed sit above the shared top inset. */
 private val HOME_TITLE_LIFT = 28.dp
@@ -188,6 +200,8 @@ fun HomeScreen(
         state = pullState,
         modifier = modifier,
     ) {
+        val feedScrolling = remember(listState) { { listState.isScrollInProgress } }
+        androidx.compose.runtime.CompositionLocalProvider(LocalFeedScrolling provides feedScrolling) {
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize().then(if(skinRenderer is SkinFeedHeaderProvider) Modifier.statusBarsPadding() else Modifier),
@@ -281,6 +295,7 @@ fun HomeScreen(
                 }
             }
         }
+        }
     }
 
     if (onLoadMore != null && state is UiState.Success) {
@@ -325,7 +340,10 @@ private fun androidx.compose.foundation.lazy.LazyListScope.itemsIndexedShelves(
         item(key = shelf.title + index) {
             val openItem: (ShelfItem) -> Unit = { item -> onItemClick(item, shelf.title) }
             val isRecents = shelf.title.equals(RECENTS_TITLE, true) || shelf.title.equals("Recently played", true)
-            if (isRecents || (shelf.items.isNotEmpty() && shelf.items.all { it.videoId != null })) {
+            // Recents of albums, playlists and stations are Apple's square cards; the
+            // paged track list only suits a history of tracks.
+            val trackRecents = isRecents && shelf.items.any { it.videoId != null }
+            if (trackRecents || (shelf.items.isNotEmpty() && shelf.items.all { it.videoId != null })) {
                 RecentShelf(
                     shelf = shelf,
                     onItemClick = openItem,
@@ -337,7 +355,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.itemsIndexedShelves(
                     likeStatuses = likeStatuses,
                     onToggleFavorite = onToggleFavorite,
                 )
-            } else if (index == 0 && firstIsHero) {
+            } else if ((index == 0 && firstIsHero) || shelf.items.any { ShelfHero.get(shelf.title, it.browseId) != null }) {
                 HeroShelf(
                     shelf = shelf,
                     onItemClick = openItem,
@@ -371,33 +389,39 @@ private fun RecentShelf(
     likeStatuses: Map<String, LikeStatus>,
     onToggleFavorite: ((String) -> Unit)?,
 ) {
-    Column(Modifier.padding(bottom = 26.dp)) {
+    // Apple only ever pages a song shelf, four rows at a time, with ••• on each.
+    val apple = com.music.streamx.ui.skins.LocalSkinRenderer.current is com.music.streamx.ui.skins.SkinArtworkPages
+    val viewType = if (apple) LibraryViewType.LIST else viewType
+    androidx.compose.runtime.CompositionLocalProvider(LocalCardZoomShelf provides shelf.title) {
+    Column(Modifier.padding(bottom = SECTION_GAP)) {
         RecentSectionHeader(
             title = shelf.title,
             subtitle = shelf.subtitle,
             viewType = viewType,
-            onViewTypeToggle = onViewTypeToggle,
+            onViewTypeToggle = onViewTypeToggle.takeUnless { apple },
             onShowAll = shelf.moreBrowseId?.let { id -> { onItemClick(ShelfItem(shelf.title, shelf.subtitle, null, null, id)) } },
         )
         val isCurrentItem = shelf.items.playingItemMatcher(currentSong)
         if (viewType == LibraryViewType.LIST) {
             BoxWithConstraints {
-                val columnWidth = trackColumnWidth(maxWidth)
+                // Apple's pages leave the next one peeking in at the edge.
+                val columnWidth = if (apple) (maxWidth - PAGE_GUTTER) * 0.86f else trackColumnWidth(maxWidth)
                 ShelfRow(
                     contentPadding = PaddingValues(horizontal = PAGE_GUTTER),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(if (apple) 14.dp else 12.dp),
                 ) {
                     items(shelf.items.chunked(RECENT_TRACKS_PER_COLUMN)) { column ->
                         Column(Modifier.width(columnWidth)) {
-                            column.forEach { item ->
+                            column.forEachIndexed { rowIndex, item ->
                                 RecentTrackRow(
                                     item = item,
                                     onClick = { onItemClick(item) },
                                     onLongPress = onItemLongPress?.let { { it(item) } },
                                     favorite = item.videoId?.let { likeStatuses[it] } == LikeStatus.LIKE,
-                                    onToggleFavorite = item.videoId?.let { id -> onToggleFavorite?.let { toggle -> { toggle(id) } } },
+                                    onToggleFavorite = item.videoId?.takeUnless { apple }?.let { id -> onToggleFavorite?.let { toggle -> { toggle(id) } } },
                                     isCurrent = isCurrentItem(item),
                                     isPlaying = isCurrentItem(item) && isPlaying,
+                                    divider = apple && rowIndex < column.lastIndex,
                                 )
                             }
                         }
@@ -409,7 +433,7 @@ private fun RecentShelf(
                 val cardWidth = heroCardWidth(maxWidth)
                 ShelfRow(
                     contentPadding = PaddingValues(horizontal = PAGE_GUTTER),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(CARD_GAP),
                 ) {
                     items(shelf.items) { item ->
                         HeroCard(
@@ -427,6 +451,7 @@ private fun RecentShelf(
             }
         }
     }
+    }
 }
 
 @Composable
@@ -434,12 +459,12 @@ private fun RecentSectionHeader(
     title: String,
     subtitle: String,
     viewType: LibraryViewType,
-    onViewTypeToggle: () -> Unit,
+    onViewTypeToggle: (() -> Unit)?,
     onShowAll: (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
-            .padding(horizontal = PAGE_GUTTER, vertical = 10.dp)
+            .padding(start = PAGE_GUTTER, end = PAGE_GUTTER, top = 4.dp, bottom = 14.dp)
             .fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -457,6 +482,7 @@ private fun RecentSectionHeader(
                 )
             }
         }
+        if (onViewTypeToggle == null) return@Row
         Spacer(Modifier.width(8.dp))
         Box(
             modifier = Modifier
@@ -494,6 +520,7 @@ private fun RecentTrackRow(
     onLongPress: (() -> Unit)?,
     isCurrent: Boolean,
     isPlaying: Boolean,
+    divider: Boolean = false,
 ) {
     CompactTrackRow(
         title = item.title,
@@ -505,6 +532,7 @@ private fun RecentTrackRow(
         isPlaying = isPlaying,
         favorite = favorite,
         onToggleFavorite = onToggleFavorite,
+        divider = divider,
     )
 }
 
@@ -524,13 +552,21 @@ fun CompactTrackRow(
     isPlaying: Boolean = false,
     favorite: Boolean = false,
     onToggleFavorite: (() -> Unit)? = null,
+    /** Apple's hairline under the words, from where they start to the row's end. */
+    divider: Boolean = false,
 ) {
+    val apple = com.music.streamx.ui.skins.LocalSkinRenderer.current is com.music.streamx.ui.skins.SkinArtworkPages
+    val hairline = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f)
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .longPressMenuClickable(onClick = onClick, onLongClick = onLongPress)
             .contextClick(onLongPress)
-            .padding(vertical = 4.dp),
+            .then(if (divider) Modifier.drawBehind {
+                val start = 60.dp.toPx()
+                drawLine(hairline, androidx.compose.ui.geometry.Offset(start, size.height), androidx.compose.ui.geometry.Offset(size.width, size.height), 0.5.dp.toPx())
+            } else Modifier)
+            .padding(vertical = if (apple) 6.dp else 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (onToggleFavorite != null) {
@@ -577,7 +613,7 @@ fun CompactTrackRow(
             )
         }
         if (onLongPress != null) {
-            RowMoreButton(onClick = onLongPress)
+            RowMoreButton(onClick = onLongPress, hang = !apple)
         }
     }
 }
@@ -636,7 +672,7 @@ internal fun SectionHeader(title: String, subtitle: String = "", onShowAll: (() 
     val displaySubtitle = localizeShelfSubtitle(subtitle)
     Row(
         modifier = Modifier
-            .padding(horizontal = PAGE_GUTTER, vertical = 10.dp)
+            .padding(start = PAGE_GUTTER, end = PAGE_GUTTER, top = 4.dp, bottom = 14.dp)
             .fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -860,7 +896,8 @@ private fun HeroShelf(
     currentSong: Song? = null,
     isPlaying: Boolean = false,
 ) {
-    Column(Modifier.padding(bottom = 26.dp)) {
+    androidx.compose.runtime.CompositionLocalProvider(LocalCardZoomShelf provides shelf.title) {
+    Column(Modifier.padding(bottom = SECTION_GAP)) {
         SectionHeader(shelf.title, shelf.subtitle,
             onShowAll = shelf.moreBrowseId?.let { id -> { onItemClick(ShelfItem(shelf.title, shelf.subtitle, null, null, id)) } },
             arrowOnly = shelf.moreBrowseId != null)
@@ -869,12 +906,14 @@ private fun HeroShelf(
         // has a ceiling as well as a fraction — see [heroCardWidth]. A fixed
         // width is also the only one of the two the aspect ratio below can turn
         // into a height, so the card keeps its shape however it was arrived at.
+        val tall = shelf.items.any { ShelfHero.get(shelf.title, it.browseId) != null }
         BoxWithConstraints {
-            val cardWidth = heroCardWidth(maxWidth)
+            // A source's tall cards are Apple's 3:4 Top Picks, three-fifths of the phone wide.
+            val cardWidth = if (tall) minOf(maxWidth * TALL_HERO_FRACTION, TALL_HERO_MAX_WIDTH) else heroCardWidth(maxWidth)
             ShelfRow(
                 state = rememberLazyListState(),
                 contentPadding = PaddingValues(horizontal = PAGE_GUTTER),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                horizontalArrangement = Arrangement.spacedBy(CARD_GAP),
             ) {
                 items(shelf.items) { item ->
                     HeroCard(
@@ -884,9 +923,78 @@ private fun HeroShelf(
                         modifier = Modifier.width(cardWidth),
                         isCurrent = isCurrentItem(item),
                         isPlaying = isCurrentItem(item) && isPlaying,
+                        hero = ShelfHero.get(shelf.title, item.browseId),
                     )
                 }
             }
+        }
+    }
+    }
+}
+
+private const val TALL_HERO_FRACTION = 0.6f
+private val TALL_HERO_MAX_WIDTH = 280.dp
+private const val TALL_HERO_RATIO = 0.75f
+private val TALL_HERO_RADIUS = 14.dp
+
+/**
+ * Apple's Top Picks card: the tall still and its loop, with the reason, name and
+ * notes set straight onto the art in the colours the source chose for it, over
+ * only as much of its own background colour as the text needs.
+ */
+@Composable
+private fun TallHeroCard(item: ShelfItem, hero: ShelfHeroArt, isCurrent: Boolean) {
+    val background = hero.backgroundColor?.let { Color(it) } ?: Color.Black
+    val primary = hero.textColor?.let { Color(it) } ?: Color.White
+    val secondary = hero.secondaryTextColor?.let { Color(it) } ?: primary
+    if (hero.square) Box(Modifier.fillMaxSize().background(background)) {
+        AsyncImage(
+            model = hero.thumbnailUrl,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxWidth().aspectRatio(1f),
+        )
+    } else AsyncImage(
+        model = hero.thumbnailUrl,
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = Modifier.fillMaxSize(),
+    )
+    hero.motionUrl?.let { CardMotion(it, Modifier.fillMaxSize()) }
+    Box(Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomStart)
+                .background(Brush.verticalGradient(listOf(background.copy(alpha = 0f), background.copy(alpha = 0.55f))))
+                .padding(start = 16.dp, end = 16.dp, top = 40.dp, bottom = 18.dp),
+        ) {
+            if (hero.eyebrow.isNotBlank()) Text(
+                text = hero.eyebrow,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                color = secondary.copy(alpha = 0.82f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = item.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                color = if (isCurrent) PlayingAccent else primary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            // A station's card is its reason and name alone on Apple's Top Picks.
+            val station = item.browseId?.contains(":station:") == true
+            val notes = hero.description.ifBlank { if (station) "" else localizeCardSubtitle(item.subtitle) }
+            if (notes.isNotBlank()) Text(
+                text = notes,
+                style = MaterialTheme.typography.bodyMedium,
+                color = primary.copy(alpha = 0.78f),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -903,16 +1011,24 @@ private fun HeroCard(
     isPlaying: Boolean = false,
     favorite: Boolean = false,
     onToggleFavorite: (() -> Unit)? = null,
+    hero: ShelfHeroArt? = null,
 ) {
+    val zoomShelf = LocalCardZoomShelf.current
     Box(
         modifier = modifier
-            .aspectRatio(HERO_CARD_RATIO)
-            .clip(RoundedCornerShape(18.dp))
-            .thumbnailBorder(RoundedCornerShape(18.dp))
+            .cardZoomSource(item.browseId, if (hero != null) TALL_HERO_RADIUS else 18.dp)
+            .aspectRatio(if (hero != null) TALL_HERO_RATIO else HERO_CARD_RATIO)
+            .clip(RoundedCornerShape(if (hero != null) TALL_HERO_RADIUS else 18.dp))
+            .thumbnailBorder(RoundedCornerShape(if (hero != null) TALL_HERO_RADIUS else 18.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .longPressMenuClickable(onClick = onClick, onLongClick = onLongPress)
+            .longPressMenuClickable(onClick = { CardZoom.open(zoomShelf, item.browseId); onClick() }, onLongClick = onLongPress)
             .contextClick(onLongPress),
     ) {
+        if (hero != null) {
+            TallHeroCard(item, hero, isCurrent)
+            if (isCurrent && isPlaying) SearchPlayingBars(Modifier.align(Alignment.Center))
+            return@Box
+        }
         AsyncImage(
             model = item.thumbnailUrl.artworkAt(HEADER_ART_PX),
             contentDescription = null,
@@ -981,14 +1097,15 @@ internal fun Shelf(
     currentSong: Song? = null,
     isPlaying: Boolean = false,
 ) {
-    Column(Modifier.padding(bottom = 26.dp)) {
+    androidx.compose.runtime.CompositionLocalProvider(LocalCardZoomShelf provides shelf.title) {
+    Column(Modifier.padding(bottom = SECTION_GAP)) {
         SectionHeader(shelf.title, shelf.subtitle,
             onShowAll = shelf.moreBrowseId?.let { id -> { onItemClick(ShelfItem(shelf.title, shelf.subtitle, null, null, id)) } },
             arrowOnly = shelf.moreBrowseId != null)
         val isCurrentItem = shelf.items.playingItemMatcher(currentSong)
         ShelfRow(
             contentPadding = PaddingValues(horizontal = PAGE_GUTTER),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(CARD_GAP),
         ) {
             leadingCard?.let { card -> item(key = "leading") { card() } }
             items(shelf.items) { item ->
@@ -1001,6 +1118,7 @@ internal fun Shelf(
                 )
             }
         }
+    }
     }
 }
 
@@ -1113,6 +1231,45 @@ internal fun BrowseCategoryTile(item: ShelfItem,onClick: () -> Unit,onLongPress:
     }
 }
 
+/**
+ * Every card clip holds a video decoder of its own, so a feed full of them
+ * animates only the first few to reach the screen; the rest keep their stills
+ * until one of those scrolls away and hands its slot on.
+ */
+private const val MAX_CARD_MOTION = 3
+private const val CARD_MOTION_SETTLE_MS = 300L
+private val cardMotionSlots = androidx.compose.runtime.mutableStateListOf<Any>()
+
+/** Whether the feed the cards sit in is being scrolled, read lazily so cards never recompose for it. */
+private val LocalFeedScrolling = androidx.compose.runtime.staticCompositionLocalOf<() -> Boolean> { { false } }
+
+/** A source's looping clip over a card's still art, under the same switches as the player's canvas. */
+@Composable
+private fun CardMotion(url: String, modifier: Modifier) {
+    val enabled by PlayerSettings.animatedCanvas.collectAsStateWithLifecycle()
+    val overCellular by PlayerSettings.canvasOverCellular.collectAsStateWithLifecycle()
+    val metered by PlayerSettings.meteredConnection.collectAsStateWithLifecycle()
+    if (!enabled || (metered == true && !overCellular)) return
+    val slot = remember { Any() }
+    DisposableEffect(slot) { onDispose { cardMotionSlots.remove(slot) } }
+    val feedScrolling = LocalFeedScrolling.current
+    LaunchedEffect(slot) {
+        // A card passing through a fling waits for the feed to settle before it
+        // starts a decoder; ones already playing keep going.
+        // Settled for a moment, too: a card a fling only sweeps past never
+        // builds a decoder it would tear down again a frame later.
+        while (true) {
+            snapshotFlow { cardMotionSlots.size < MAX_CARD_MOTION && !feedScrolling() }.first { it }
+            kotlinx.coroutines.delay(CARD_MOTION_SETTLE_MS)
+            if (cardMotionSlots.size < MAX_CARD_MOTION && !feedScrolling()) break
+        }
+        cardMotionSlots.add(slot)
+    }
+    if (slot !in cardMotionSlots) return
+    val canvas = remember(url) { CanvasArtwork(url = url) }
+    CanvasArtworkPlayer(canvas = canvas, isPlaying = true, modifier = modifier)
+}
+
 @Composable
 fun ShelfCard(
     item: ShelfItem,
@@ -1124,9 +1281,11 @@ fun ShelfCard(
     isCurrent: Boolean = false,
     isPlaying: Boolean = false,
 ) {
+    val skinRenderer = LocalSkinRenderer.current
+    val zoomShelf = LocalCardZoomShelf.current
     Column(
         modifier = modifier
-            .longPressMenuClickable(onClick = onClick, onLongClick = onLongPress)
+            .longPressMenuClickable(onClick = { CardZoom.open(zoomShelf, item.browseId); onClick() }, onLongClick = onLongPress)
             .contextClick(onLongPress),
     ) {
         when (item.browseId) {
@@ -1174,8 +1333,10 @@ fun ShelfCard(
                 icon = Icons.Rounded.Storage,
             )
             else -> {
+                val artCorner = if (LocalSkinLayout.current == SkinLayout()) 12.dp else LocalSkinLayout.current.artworkRadiusDp.dp
                 Box(
                     modifier = Modifier
+                        .cardZoomSource(item.browseId, artCorner)
                         .fillMaxWidth()
                         .aspectRatio(1f)
                         .clip(RoundedCornerShape(if (LocalSkinLayout.current == SkinLayout()) 12.dp else LocalSkinLayout.current.artworkRadiusDp.dp))
@@ -1188,11 +1349,13 @@ fun ShelfCard(
                         contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
                     )
+                    ShelfMotion.get(item.browseId)?.let { CardMotion(it, Modifier.fillMaxSize()) }
                     if (isCurrent && isPlaying) SearchPlayingBars(Modifier.align(Alignment.Center))
                 }
             }
         }
-        Spacer(Modifier.height(10.dp))
+        // Apple: the title sits 6-8pt under the art, the subtitle directly under it.
+        Spacer(Modifier.height(7.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -1210,20 +1373,27 @@ fun ShelfCard(
                 text = item.title,
                 style = MaterialTheme.typography.titleMedium,
                 color = if (isCurrent) PlayingAccent else MaterialTheme.colorScheme.onBackground,
-                maxLines = if(item.browseId?.startsWith("apk:")==true) 2 else 1,
-                minLines = if(item.browseId?.startsWith("apk:")==true) 2 else 1,
+                // Plugin cards may wrap to two lines but never reserve an empty one —
+                // the reserved lines were what opened the big holes under plugin shelves.
+                // Apple Music keeps a card to one title line; other skins let plugin titles wrap.
+                maxLines = if(item.browseId?.startsWith("apk:")==true && skinRenderer !is com.music.streamx.ui.skins.SkinArtworkPages) 2 else 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false),
             )
         }
         val displaySubtitle = localizeCardSubtitle(item.subtitle)
-        Text(
+        // Apple never wraps the artist line under a card; a long credit truncates.
+        if (displaySubtitle.isNotBlank()) Text(
             text = displaySubtitle,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = if(item.browseId?.startsWith("apk:")==true) 3 else 1,
-            minLines = if(item.browseId?.startsWith("apk:")==true) 3 else 1,
+            maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
     }
 }
+
+
+/** Apple Music's rhythm: ~30pt between shelves, 12pt between cards in a row. */
+private val SECTION_GAP = 40.dp // Apple Music leaves ~56pt from one shelf to the next title
+private val CARD_GAP = 12.dp

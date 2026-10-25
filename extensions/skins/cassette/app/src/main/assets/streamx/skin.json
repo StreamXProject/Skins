@@ -1,0 +1,39 @@
+{
+  "version": 3,
+  "id": "cassette",
+  "name": "Cassette",
+  "author": "StreamX",
+  "renderer": {
+    "entryPoint": "com.music.streamx.skins.cassette.CassetteRenderer",
+    "api": 1
+  },
+  "dark": {
+    "background": "#1E1A17",
+    "surface": "#29241F",
+    "surfaceVariant": "#362F28",
+    "text": "#F5EEE3",
+    "secondary": "#C4B8A8",
+    "accent": "#F0A05A"
+  },
+  "light": {
+    "background": "#F7F1E6",
+    "surface": "#FFFBF3",
+    "surfaceVariant": "#ECE2D0",
+    "text": "#26211C",
+    "secondary": "#6B5F52",
+    "accent": "#D9772B"
+  },
+  "cornerRadiusDp": 12,
+  "layout": {
+    "icons": "EXTENSION",
+    "home": "QUICK_ACCESS",
+    "navigation": "FLAT",
+    "library": "ROWS",
+    "settings": "FLAT",
+    "player": "EXTENSION",
+    "artworkRadiusDp": 6,
+    "shelfWidthDp": 160,
+    "searchRadiusDp": 12,
+    "miniPlayerRadiusDp": 14
+  }
+}

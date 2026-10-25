@@ -54,5 +54,82 @@
     "project": "extensions/skins/spotui",
     "packageName": "com.music.streamx.skins.spotui",
     "type": "skin"
+  },
+  {
+    "id": "ipod",
+    "module": "ipodSkin",
+    "project": "extensions/skins/ipod",
+    "packageName": "com.music.streamx.skins.ipod",
+    "type": "skin"
+  },
+  {
+    "id": "vinyl",
+    "module": "vinylSkin",
+    "project": "extensions/skins/vinyl",
+    "packageName": "com.music.streamx.skins.vinyl",
+    "type": "skin"
+  },
+  {
+    "id": "cassette",
+    "module": "cassetteSkin",
+    "project": "extensions/skins/cassette",
+    "packageName": "com.music.streamx.skins.cassette",
+    "type": "skin"
+  },
+  {
+    "id": "discman",
+    "module": "discmanSkin",
+    "project": "extensions/skins/discman",
+    "packageName": "com.music.streamx.skins.discman",
+    "type": "skin"
+  },
+  {
+    "id": "nightwave",
+    "module": "nightwaveSkin",
+    "project": "extensions/skins/nightwave",
+    "packageName": "com.music.streamx.skins.nightwave",
+    "type": "skin"
+  },
+  {
+    "id": "paper",
+    "module": "paperSkin",
+    "project": "extensions/skins/paper",
+    "packageName": "com.music.streamx.skins.paper",
+    "type": "skin"
+  },
+  {
+    "id": "wave",
+    "module": "waveSkin",
+    "project": "extensions/skins/wave",
+    "packageName": "com.music.streamx.skins.wave",
+    "type": "skin"
+  },
+  {
+    "id": "aurora",
+    "module": "auroraSkin",
+    "project": "extensions/skins/aurora",
+    "packageName": "com.music.streamx.skins.aurora",
+    "type": "skin"
+  },
+  {
+    "id": "studio",
+    "module": "studioSkin",
+    "project": "extensions/skins/studio",
+    "packageName": "com.music.streamx.skins.studio",
+    "type": "skin"
+  },
+  {
+    "id": "polaroid",
+    "module": "polaroidSkin",
+    "project": "extensions/skins/polaroid",
+    "packageName": "com.music.streamx.skins.polaroid",
+    "type": "skin"
+  },
+  {
+    "id": "namida",
+    "module": "namidaSkin",
+    "project": "extensions/skins/namida",
+    "packageName": "com.music.streamx.skins.namida",
+    "type": "skin"
   }
 ]

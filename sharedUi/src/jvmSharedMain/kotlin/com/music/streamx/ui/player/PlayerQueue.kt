@@ -1,4 +1,10 @@
 package com.music.streamx.ui.player
+import com.music.streamx.ui.components.longPressMenuClickable
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.ArrowDownward
+import androidx.compose.material.icons.rounded.ArrowUpward
+import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.ensureActive
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
@@ -76,6 +82,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Velocity
 import coil3.compose.AsyncImage
@@ -129,11 +136,11 @@ internal fun keepScrollInList(listState: LazyListState) = object : NestedScrollC
 private val QUEUE_ROW_MOTION = tween<IntOffset>(durationMillis = 200, easing = FastOutSlowInEasing)
 
 /** Softens the list where it meets the header and the scrubber. */
-internal fun Modifier.fadingEdges(): Modifier = this
+internal fun Modifier.fadingEdges(top: Dp = 28.dp, bottom: Dp = 28.dp): Modifier = this
     .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
     .drawWithContent {
         drawContent()
-        val fade = 28.dp.toPx()
+        val fade = top.toPx()
         drawRect(
             brush = Brush.verticalGradient(
                 colors = listOf(Color.Transparent, Color.Black),
@@ -142,10 +149,11 @@ internal fun Modifier.fadingEdges(): Modifier = this
             ),
             blendMode = BlendMode.DstIn,
         )
+        val foot = bottom.toPx()
         drawRect(
             brush = Brush.verticalGradient(
                 colors = listOf(Color.Black, Color.Transparent),
-                startY = size.height - fade,
+                startY = size.height - foot,
                 endY = size.height,
             ),
             blendMode = BlendMode.DstIn,
@@ -306,7 +314,6 @@ internal fun InlineQueue(
             modifier = Modifier
                 .fillMaxWidth()
                 .bleedHorizontally(PLAYER_GUTTER)
-                .fadingEdges()
                 // The list owns the gesture, so recycling the original row cannot cancel it.
                 .pointerInput(drag) {
                     awaitEachGesture {
@@ -331,6 +338,9 @@ internal fun InlineQueue(
                 state = listState,
                 modifier = Modifier
                     .fillMaxWidth()
+                    // On the list rather than around it: the held row is drawn
+                    // over it, and has to stay solid when carried to either end.
+                    .fadingEdges()
                     // Without this the sheet treats the list's leftover scroll as a
                     // drag on itself and slides the whole player away.
                     .nestedScroll(keepScroll)
@@ -591,16 +601,28 @@ private fun rememberQueueDrag(
     val direction = drag.autoScrollDir
     LaunchedEffect(drag, direction) {
         if (direction == 0) return@LaunchedEffect
-        listState.scroll {
-            var previous = withFrameNanos { it }
-            while (true) {
-                val now = withFrameNanos { it }
-                // A dropped frame paid back in full lands as a lurch, so it isn't.
-                val seconds = ((now - previous) / 1_000_000_000f).coerceAtMost(1f / 30f)
-                previous = now
-                // Nowhere left to scroll: let go of the list rather than spin.
-                if (scrollBy(drag.autoScrollSpeed * seconds) == 0f) break
-                drag.scrolled()
+        var previous = withFrameNanos { it }
+        var ended = false
+        while (!ended) {
+            // Pinning the list's place on a swap cancels the scroll it lands in;
+            // the loop picks straight back up rather than leaving the row stuck.
+            try {
+                listState.scroll {
+                    while (true) {
+                        val now = withFrameNanos { it }
+                        // A dropped frame paid back in full lands as a lurch, so it isn't.
+                        val seconds = ((now - previous) / 1_000_000_000f).coerceAtMost(1f / 30f)
+                        previous = now
+                        val moved = scrollBy(drag.autoScrollSpeed * seconds)
+                        drag.scrolled()
+                        // Nowhere left to scroll: let go of the list rather than spin.
+                        // A pinned swap's frame scrolls nothing, so a zero alone isn't the end.
+                        if (moved == 0f && !(if (direction < 0) listState.canScrollBackward else listState.canScrollForward)) break
+                    }
+                }
+                ended = true
+            } catch (e: CancellationException) {
+                ensureActive()
             }
         }
     }
@@ -773,14 +795,17 @@ private class QueueDrag(private val listState: LazyListState) {
         // Half a row of overlap per swap, so a row isn't traded back and forth
         // over a single pixel of travel.
         if (abs(center - (target.offset + target.size / 2f)) > target.size / 2f) return
-        // LazyColumn keeps its place by the key of its first visible row; move
-        // that row while there's list above it and the whole list follows it
-        // along by a row. Waiting a few frames for the scroll to bring in the
-        // next row up avoids it.
-        if (target.index == listState.firstVisibleItemIndex && listState.canScrollBackward) return
         val from = rows.firstOrNull { it.key == key }?.timelineIndex ?: return
         val to = rows.firstOrNull { it.key == target.key }?.timelineIndex ?: return
+        // LazyColumn keeps its place by the key of its first visible row; move
+        // that row and the whole list follows it along by a row. A skin hides
+        // the headings, so a section's top row is often the list's first, and
+        // the held row ran off with the list. The position is pinned across
+        // the swap instead.
+        val first = listState.firstVisibleItemIndex
+        val firstOffset = listState.firstVisibleItemScrollOffset
         moveLocally(key, target.key as String)
+        if (dragged.index == first || target.index == first) listState.requestScrollToItem(first, firstOffset)
         awaiting = target.index
         onMove(from, to)
     }
@@ -842,7 +867,7 @@ private fun InlineQueueRow(
             .background(if (lifted) Color.White.copy(alpha = if(reference).14f else .06f) else Color.Transparent)
             // Disabled rather than ignored: a tap that ripples and then does
             // nothing reads as the app having missed it.
-            .then(if(reference)Modifier.combinedClickable(enabled=!locked,onClick=onClick,onLongClick={menu=true})
+            .then(if(reference)Modifier.longPressMenuClickable(enabled=!locked,onClick=onClick,onLongClick={menu=true})
                 .semantics {customActions=if(locked)emptyList()else buildList {
                     onMoveUp?.let{add(CustomAccessibilityAction("Move up"){it();true})}
                     onMoveDown?.let{add(CustomAccessibilityAction("Move down"){it();true})}
@@ -912,10 +937,16 @@ private fun InlineQueueRow(
                 }},contentAlignment=Alignment.Center) {
                 Icon(Icons.Rounded.DragHandle,null,Modifier.size(22.dp),tint=Color.White.copy(alpha=.4f))
             }
-            androidx.compose.material3.DropdownMenu(menu,{menu=false}) {
-                onMoveUp?.let {action->androidx.compose.material3.DropdownMenuItem(text={Text("Move up")},onClick={menu=false;action()},enabled=!locked)}
-                onMoveDown?.let {action->androidx.compose.material3.DropdownMenuItem(text={Text("Move down")},onClick={menu=false;action()},enabled=!locked)}
-                androidx.compose.material3.DropdownMenuItem(text={Text("Remove from queue")},onClick={menu=false;onRemove()},enabled=!locked)
+            // iOS 26's glass menu, grown from the held row; the same finger can
+            // slide onto a choice and lift.
+            if(menu) {
+                val anchor=remember{com.music.streamx.ui.components.MenuAnchor.recent()}
+                com.music.streamx.ui.components.GlassMenu(onDismiss={menu=false},anchor=anchor) {
+                    onMoveUp?.let {action->com.music.streamx.ui.components.GlassMenuRow(Icons.Rounded.ArrowUpward,"Move Up",{menu=false;action()},enabled=!locked)}
+                    onMoveDown?.let {action->com.music.streamx.ui.components.GlassMenuRow(Icons.Rounded.ArrowDownward,"Move Down",{menu=false;action()},enabled=!locked)}
+                    com.music.streamx.ui.components.GlassMenuSeparator()
+                    com.music.streamx.ui.components.GlassMenuRow(Icons.Rounded.Delete,"Remove from Queue",{menu=false;onRemove()},destructive=true,enabled=!locked)
+                }
             }
         } else if (!locked) {
             Box(

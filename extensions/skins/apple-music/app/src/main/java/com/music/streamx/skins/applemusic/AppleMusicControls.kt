@@ -1,5 +1,12 @@
 package com.music.streamx.skins.applemusic
 
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.foundation.layout.BoxWithConstraints
+import com.music.streamx.ui.skins.LocalSkinGlassFactory
+import kotlin.math.roundToInt
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.layout.layout
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
@@ -25,6 +32,24 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
+import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 /*
  * UIKit's own controls, measured off iOS: the segmented control, the switch, the
@@ -62,35 +87,246 @@ import androidx.compose.ui.window.Dialog
     }
 }
 
-/** iOS's switch: a 51×31 pill, the white knob springing across, the accent when on. */
+/**
+ * iOS 26's switch. A white knob on a track that fills with the accent. Touched,
+ * the knob swells into a clear glass lens riding over the track; dragged, it
+ * slides with the finger, leaning into the way it's going, and the track's
+ * colour follows it across; let go, it settles to the nearer side and turns
+ * solid again. Without liquid glass the knob stays white but moves the same way.
+ */
 @Composable internal fun AppleToggle(checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?, enabled: Boolean, modifier: Modifier) {
     val off = if (isDark()) Color(0x52787880) else Color(0x29787880)
-    val track by animateColorAsState(if (checked) MaterialTheme.colorScheme.primary else off, label = "toggleTrack")
-    val knob by animateDpAsState(if (checked) 20.dp else 0.dp, spring(dampingRatio = .72f, stiffness = 600f), label = "toggleKnob")
-    Box(modifier.size(51.dp, 31.dp).alpha(if (enabled) 1f else .4f).clip(CircleShape).background(track)
-        .then(if (onCheckedChange != null) Modifier.toggleable(checked, remember { MutableInteractionSource() }, null, enabled, Role.Switch, onCheckedChange) else Modifier)
-        .padding(2.dp)) {
-        Box(Modifier.offset(x = knob).size(27.dp).shadow(3.dp, CircleShape).background(Color.White, CircleShape))
+    val accent = MaterialTheme.colorScheme.primary
+    val glass = com.music.streamx.ui.skins.LocalSkinLiquidGlass.current
+    val position = remember { Animatable(if (checked) 1f else 0f) }
+    val lift = remember { Animatable(0f) }
+    val lean = remember { Animatable(0f) }
+    var held by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val current by rememberUpdatedState(checked)
+    val change by rememberUpdatedState(onCheckedChange)
+    LaunchedEffect(checked) {
+        if (!held) position.animateTo(if (checked) 1f else 0f, spring(dampingRatio = .68f, stiffness = 500f))
+    }
+    val interactive = onCheckedChange != null && enabled
+    Box(modifier.size(62.dp, 26.dp).alpha(if (enabled) 1f else .4f)
+        .semantics {
+            role = Role.Switch
+            toggleableState = ToggleableState(checked)
+            if (interactive) onClick { change?.invoke(!current); true }
+        }
+        .then(if (interactive) Modifier.pointerInput(Unit) {
+            val travel = 21.dp.toPx()
+            awaitEachGesture {
+                val down = awaitFirstDown()
+                // The switch owns its touches; a row around it doesn't toggle too.
+                down.consume()
+                held = true
+                scope.launch { lift.animateTo(1f, spring(dampingRatio = .6f, stiffness = 700f)) }
+                val start = position.value
+                var moved = false
+                while (true) {
+                    val c = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
+                    if (!c.pressed) { c.consume(); break }
+                    val dx = c.position.x - down.position.x
+                    if (!moved && abs(dx) > viewConfiguration.touchSlop) moved = true
+                    if (moved) {
+                        c.consume()
+                        val step = c.position.x - c.previousPosition.x
+                        scope.launch {
+                            position.snapTo(rubberBand(start + dx / travel))
+                            lean.snapTo((step / 6.dp.toPx()).coerceIn(-1f, 1f))
+                        }
+                    }
+                }
+                val target = if (moved) position.value > .5f else !current
+                held = false
+                scope.launch { lean.animateTo(0f, spring(dampingRatio = .4f, stiffness = 400f)) }
+                scope.launch { lift.animateTo(0f, spring(dampingRatio = .55f, stiffness = 380f)) }
+                scope.launch { position.animateTo(if (target) 1f else 0f, spring(dampingRatio = .62f, stiffness = 420f)) }
+                if (target != current) change?.invoke(target)
+            }
+        } else Modifier)
+    ) {
+        // Three layers: the track, which the lens refracts; the white knob and its
+        // shadow; and, while held, the lens itself — real glass where the platform
+        // can bend light, drawn glass where it can't.
+        val glassBackdrop = if (glass) LocalSkinGlassFactory.current() else null
+        val lensModifier = glassBackdrop?.lens(RoundedCornerShape(percent = 50))
+        val card = MaterialTheme.colorScheme.surface
+        Box(Modifier.matchParentSize().then(glassBackdrop?.source ?: Modifier).drawBehind {
+            // The row's own colour round the pill, so what the lens bends past the
+            // track's ends is the row behind it, not the page's black.
+            if (glassBackdrop != null) drawRect(card)
+            val p = position.value
+            val track = lerp(off, accent, ((p - .38f) / .24f).coerceIn(0f, 1f))
+            drawRoundRect(track, cornerRadius = CornerRadius(size.height / 2))
+        })
+        Box(Modifier.matchParentSize().drawBehind {
+            val realLens = lensModifier != null
+            val p = position.value
+            val l = lift.value
+            val tilt = lean.value
+            // The track keeps its colour until the knob is well past halfway, then turns
+            // quickly, as iOS's does, rather than passing through a muddy blend.
+            val track = lerp(off, accent, ((p - .38f) / .24f).coerceIn(0f, 1f))
+            // iOS 26's knob is a capsule, not a disc: 37 by 22 in a 62 by 26 track.
+            val pad = 2.dp.toPx()
+            val knobW = 37.dp.toPx()
+            val knobH = 22.dp.toPx()
+            // The knob grows past the track when lifted, as the iOS lens does,
+            // and stretches the way it's moving while it moves.
+            val w = knobW * (1f + .54f * l) * (1f + .1f * abs(tilt))
+            val h = knobH * (1f + .5f * l) * (1f - .05f * abs(tilt))
+            val cx = pad + knobW / 2 + p * (size.width - 2 * pad - knobW) + tilt * 2.dp.toPx()
+            val cy = size.height / 2
+            val topLeft = Offset(cx - w / 2, cy - h / 2)
+            val knobSize = Size(w, h)
+            val corner = CornerRadius(h / 2)
+            // At rest a small dark shadow under the white knob; lifted, that gives
+            // way to a soft glow of the track's own colour round the lens.
+            drawRoundRect(Color.Black.copy(alpha = .16f * (1f - l)), topLeft + Offset(0f, 1.dp.toPx()), knobSize, corner)
+            // Only for the drawn knob: the real lens carries its own soft shadow, and
+            // a glow round it read as stray light, which iOS's switch has none of.
+            if (l > 0f && !realLens) for (i in 1..3) {
+                val g = i * 2.dp.toPx()
+                drawRoundRect(track.copy(alpha = .08f * l), topLeft - Offset(g, g), Size(w + g * 2, h + g * 2), CornerRadius(h / 2 + g))
+            }
+            if (!glass) {
+                drawRoundRect(Color.White, topLeft, knobSize, corner)
+                return@drawBehind
+            }
+            // The real lens is its own layer above; here only the white knob fading out under it.
+            if (realLens) {
+                drawRoundRect(Color.White.copy(alpha = 1f - l), topLeft, knobSize, corner)
+                return@drawBehind
+            }
+            // Solid white at rest. Held, iOS 26's clear lens: the track seen through
+            // it a shade brighter, a thin dark line just inside the edge where the
+            // glass bends the light, a white rim brightest at two opposite corners,
+            // and a sheen across the top.
+            drawRoundRect(Color.White.copy(alpha = 1f - l), topLeft, knobSize, corner)
+            if (l > 0f) {
+                drawRoundRect(lerp(track, Color.White, .1f).copy(alpha = l), topLeft, knobSize, corner)
+                val inset = 2.5.dp.toPx()
+                drawRoundRect(lerp(track, Color.Black, .35f).copy(alpha = .55f * l), topLeft + Offset(inset, inset),
+                    Size(w - inset * 2, h - inset * 2), CornerRadius(h / 2 - inset), style = Stroke(1.dp.toPx()))
+                drawRoundRect(Brush.verticalGradient(listOf(Color.White.copy(alpha = .38f * l), Color.Transparent), topLeft.y, topLeft.y + h * .45f),
+                    topLeft + Offset(h * .18f, h * .08f), Size(w - h * .36f, h * .32f), CornerRadius(h * .16f))
+                drawRoundRect(
+                    Brush.linearGradient(
+                        0f to Color.White.copy(alpha = .95f * l), .35f to Color.White.copy(alpha = .35f * l),
+                        .65f to Color.White.copy(alpha = .35f * l), 1f to Color.White.copy(alpha = .95f * l),
+                        start = topLeft, end = topLeft + Offset(w, h)),
+                    topLeft, knobSize, corner, style = Stroke(1.8.dp.toPx()))
+            }
+        })
+        if (lensModifier != null) Box(
+            Modifier
+                .layout { measurable, constraints ->
+                    // Sized once at its largest; moved and shrunk per frame without relayout.
+                    val w = (37.dp.toPx() * 1.54f).roundToInt()
+                    val h = (22.dp.toPx() * 1.5f).roundToInt()
+                    val placeable = measurable.measure(Constraints.fixed(w, h))
+                    layout(constraints.maxWidth, constraints.maxHeight) {
+                        placeable.placeWithLayer(0, 0) {
+                            val p = position.value
+                            val l = lift.value
+                            val tilt = lean.value
+                            val pad = 2.dp.toPx()
+                            val knobW = 37.dp.toPx()
+                            val cx = pad + knobW / 2 + p * (constraints.maxWidth - 2 * pad - knobW) + tilt * 2.dp.toPx()
+                            val cy = constraints.maxHeight / 2f
+                            val sw = (1f + .54f * l) / 1.54f * (1f + .1f * abs(tilt))
+                            val sh = (1f + .5f * l) / 1.5f * (1f - .05f * abs(tilt))
+                            translationX = cx - w / 2f
+                            translationY = cy - h / 2f
+                            scaleX = sw
+                            scaleY = sh
+                            alpha = (l * 1.6f).coerceIn(0f, 1f)
+                        }
+                    }
+                }
+                .then(lensModifier),
+        )
     }
 }
 
-/** iOS's slider: a thin rounded track filled in the accent, and a white knob. */
-@OptIn(ExperimentalMaterial3Api::class)
+/** Past either end the knob still gives a little, a quarter as much. */
+private fun rubberBand(v: Float) = when {
+    v < 0f -> v * .25f
+    v > 1f -> 1f + (v - 1f) * .25f
+    else -> v
+}
+
+/**
+ * iOS 26's slider: a thin track filled in the accent and a white capsule thumb
+ * that, held, turns to clear glass bending the track beneath it, as the Liquid
+ * Glass setting's own does. Without glass the thumb stays white but swells.
+ */
 @Composable internal fun AppleSlider(value: Float, onValueChange: (Float) -> Unit, valueRange: ClosedFloatingPointRange<Float>, steps: Int, enabled: Boolean, modifier: Modifier) {
     val off = if (isDark()) Color(0x52787880) else Color(0x29787880)
     val fill = MaterialTheme.colorScheme.primary
-    Slider(
-        value = value, onValueChange = onValueChange, modifier = modifier, enabled = enabled,
-        valueRange = valueRange, steps = steps,
-        thumb = { Box(Modifier.size(28.dp).shadow(3.dp, CircleShape).background(Color.White, CircleShape)) },
-        track = { state ->
-            val span = (state.valueRange.endInclusive - state.valueRange.start).takeIf { it > 0f } ?: 1f
-            val fraction = ((state.value - state.valueRange.start) / span).coerceIn(0f, 1f)
-            Box(Modifier.fillMaxWidth().height(4.dp).clip(CircleShape).background(off)) {
-                Box(Modifier.fillMaxWidth(fraction).fillMaxHeight().background(fill))
+    val rowColor = MaterialTheme.colorScheme.surface
+    val glass = com.music.streamx.ui.skins.LocalSkinLiquidGlass.current
+    val glassBackdrop = if (glass) LocalSkinGlassFactory.current() else null
+    val lensModifier = glassBackdrop?.lens(RoundedCornerShape(percent = 50))
+    val lift = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+    val set by rememberUpdatedState(onValueChange)
+    val span = (valueRange.endInclusive - valueRange.start).takeIf { it > 0f } ?: 1f
+    val fraction = ((value - valueRange.start) / span).coerceIn(0f, 1f)
+    fun snap(f: Float): Float {
+        val raw = valueRange.start + span * f.coerceIn(0f, 1f)
+        if (steps <= 0) return raw
+        val step = span / (steps + 1)
+        return (valueRange.start + Math.round((raw - valueRange.start) / step) * step).coerceIn(valueRange.start, valueRange.endInclusive)
+    }
+    val thumbW = 40.dp
+    val thumbH = 24.dp
+    BoxWithConstraints(modifier.fillMaxWidth().height(36.dp).alpha(if (enabled) 1f else .4f)
+        .then(if (enabled) Modifier.pointerInput(steps, valueRange) {
+            val tw = thumbW.toPx()
+            awaitEachGesture {
+                val down = awaitFirstDown()
+                down.consume()
+                scope.launch { lift.animateTo(1f, spring(dampingRatio = .6f, stiffness = 600f)) }
+                val usable = (size.width - tw).coerceAtLeast(1f)
+                set(snap((down.position.x - tw / 2) / usable))
+                while (true) {
+                    val e = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
+                    if (!e.pressed) break
+                    e.consume()
+                    set(snap((e.position.x - tw / 2) / usable))
+                }
+                scope.launch { lift.animateTo(0f, spring(dampingRatio = .55f, stiffness = 420f)) }
             }
-        },
-    )
+        } else Modifier)) {
+        val widthPx = constraints.maxWidth.toFloat()
+        val density = androidx.compose.ui.platform.LocalDensity.current
+        val thumbWPx = with(density) { thumbW.toPx() }
+        // The track, which the lens refracts.
+        Box(Modifier.matchParentSize().then(glassBackdrop?.source ?: Modifier).drawBehind {
+            // The row's own colour under the track: the backdrop otherwise records the
+            // page's black there, and it shows as a dark band round the slider.
+            if (glassBackdrop != null) drawRect(rowColor)
+            val y = size.height / 2
+            val h = 4.dp.toPx()
+            val inset = thumbWPx / 2
+            val usable = size.width - thumbWPx
+            drawRoundRect(off, Offset(inset, y - h / 2), Size(usable, h), CornerRadius(h / 2))
+            drawRoundRect(fill, Offset(inset, y - h / 2), Size(usable * fraction, h), CornerRadius(h / 2))
+            if (steps in 1..10) for (i in 0..steps + 1) drawCircle(off, 1.5.dp.toPx(), Offset(inset + usable * i / (steps + 1), y + 9.dp.toPx()))
+        })
+        Box(Modifier
+            .offset { IntOffset(((widthPx - thumbWPx) * fraction).roundToInt(), 0) }
+            .align(Alignment.CenterStart)
+            .size(thumbW, thumbH)
+            .graphicsLayer { val s = 1f + .35f * lift.value; scaleX = s; scaleY = s }
+            .then(if (lensModifier != null) lensModifier.drawBehind {
+                drawRoundRect(Color.White.copy(alpha = 1f - lift.value), cornerRadius = CornerRadius(size.height / 2))
+            } else Modifier.shadow(3.dp, RoundedCornerShape(percent = 50)).background(Color.White, RoundedCornerShape(percent = 50))))
+    }
 }
 
 /** iOS's alert: a 270-wide rounded card, centred title and message, buttons split by hairlines. */

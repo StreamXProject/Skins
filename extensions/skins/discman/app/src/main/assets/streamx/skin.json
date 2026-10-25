@@ -1,0 +1,39 @@
+{
+  "version": 3,
+  "id": "discman",
+  "name": "Discman",
+  "author": "StreamX",
+  "renderer": {
+    "entryPoint": "com.music.streamx.skins.discman.DiscmanRenderer",
+    "api": 1
+  },
+  "dark": {
+    "background": "#0F161C",
+    "surface": "#182028",
+    "surfaceVariant": "#232D37",
+    "text": "#EEF3F8",
+    "secondary": "#A9B7C5",
+    "accent": "#7CC4E0"
+  },
+  "light": {
+    "background": "#EEF2F6",
+    "surface": "#FFFFFF",
+    "surfaceVariant": "#DDE4EC",
+    "text": "#172029",
+    "secondary": "#566474",
+    "accent": "#3B82A0"
+  },
+  "cornerRadiusDp": 16,
+  "layout": {
+    "icons": "EXTENSION",
+    "home": "QUICK_ACCESS",
+    "navigation": "FLAT",
+    "library": "ROWS",
+    "settings": "FLAT",
+    "player": "EXTENSION",
+    "artworkRadiusDp": 10,
+    "shelfWidthDp": 160,
+    "searchRadiusDp": 16,
+    "miniPlayerRadiusDp": 24
+  }
+}

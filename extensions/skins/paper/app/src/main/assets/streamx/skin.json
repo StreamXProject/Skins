@@ -1,0 +1,39 @@
+{
+  "version": 3,
+  "id": "paper",
+  "name": "Paper",
+  "author": "StreamX",
+  "renderer": {
+    "entryPoint": "com.music.streamx.skins.paper.PaperRenderer",
+    "api": 1
+  },
+  "dark": {
+    "background": "#1F1D1A",
+    "surface": "#292623",
+    "surfaceVariant": "#35312C",
+    "text": "#EFE9DF",
+    "secondary": "#BBB2A5",
+    "accent": "#D2B27E"
+  },
+  "light": {
+    "background": "#F6F1E8",
+    "surface": "#FBF8F1",
+    "surfaceVariant": "#ECE5D8",
+    "text": "#2A2622",
+    "secondary": "#6A635A",
+    "accent": "#8A6A3C"
+  },
+  "cornerRadiusDp": 4,
+  "layout": {
+    "icons": "EXTENSION",
+    "home": "QUICK_ACCESS",
+    "navigation": "FLAT",
+    "library": "ROWS",
+    "settings": "FLAT",
+    "player": "EXTENSION",
+    "artworkRadiusDp": 2,
+    "shelfWidthDp": 160,
+    "searchRadiusDp": 4,
+    "miniPlayerRadiusDp": 6
+  }
+}

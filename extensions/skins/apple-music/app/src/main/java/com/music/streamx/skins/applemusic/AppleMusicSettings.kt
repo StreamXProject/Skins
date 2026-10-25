@@ -88,7 +88,7 @@ import com.music.streamx.ui.skins.*
         AppleMusicBottomFade(Modifier.rotate(180f).graphicsLayer{alpha=titleAlpha},false,MaterialTheme.colorScheme.background)
         Text("Apple Music",Modifier.align(Alignment.TopCenter).padding(top=19.dp).graphicsLayer{alpha=titleAlpha},
             style=MaterialTheme.typography.titleMedium.copy(fontWeight=FontWeight.SemiBold))
-        IconButton(onClick=onDismiss,modifier=Modifier.padding(start=12.dp,top=4.dp).size(44.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)) {
+        IconButton(onClick=onDismiss,modifier=Modifier.padding(start=12.dp,top=4.dp).liquidPress().size(44.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)) {
             Icon(Icons.AutoMirrored.Rounded.ArrowBack,"Back")
         }
     }

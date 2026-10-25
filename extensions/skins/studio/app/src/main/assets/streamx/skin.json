@@ -1,0 +1,39 @@
+{
+  "version": 3,
+  "id": "studio",
+  "name": "Studio",
+  "author": "StreamX",
+  "renderer": {
+    "entryPoint": "com.music.streamx.skins.studio.StudioRenderer",
+    "api": 1
+  },
+  "dark": {
+    "background": "#121315",
+    "surface": "#1B1D20",
+    "surfaceVariant": "#26292E",
+    "text": "#F0EFEA",
+    "secondary": "#B3B0A6",
+    "accent": "#F2A93B"
+  },
+  "light": {
+    "background": "#F2F2F0",
+    "surface": "#FFFFFF",
+    "surfaceVariant": "#E2E2DE",
+    "text": "#1C1C1A",
+    "secondary": "#5B5B55",
+    "accent": "#B8730A"
+  },
+  "cornerRadiusDp": 10,
+  "layout": {
+    "icons": "EXTENSION",
+    "home": "QUICK_ACCESS",
+    "navigation": "FLAT",
+    "library": "ROWS",
+    "settings": "FLAT",
+    "player": "EXTENSION",
+    "artworkRadiusDp": 6,
+    "shelfWidthDp": 160,
+    "searchRadiusDp": 10,
+    "miniPlayerRadiusDp": 12
+  }
+}

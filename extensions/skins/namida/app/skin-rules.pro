@@ -1,0 +1,2 @@
+-keep class com.music.streamx.skins.namida.NamidaRenderer { public *; }
+-keepattributes Signature,InnerClasses,EnclosingMethod
