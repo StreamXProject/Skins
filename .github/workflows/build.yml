@@ -70,6 +70,8 @@ jobs:
         run: |
           created=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq .created_at)
           echo "RELEASE_TAG=v$(date -u -d "$created" +%Y.%m.%d.%H%M%S)" >> "$GITHUB_ENV"
+      - name: Verify icon export
+        run: python3 .github/scripts/test-extension-icons.py
       - name: Verify signatures and create repository index
         run: python3 .github/scripts/catalogue.py --repo "$GITHUB_REPOSITORY" --tag "$RELEASE_TAG"
       - name: Publish APKs, then update the discovery index
@@ -92,7 +94,7 @@ jobs:
           short_sha=${GITHUB_SHA:0:7}
           printf 'Automated update from [%s@`%s`](https://github.com/%s/commit/%s)\n' "$GITHUB_REPOSITORY" "$short_sha" "$GITHUB_REPOSITORY" "$GITHUB_SHA" > dist/release-notes.md
           gh release view "$tag" >/dev/null 2>&1 || retry gh release create "$tag" --target "$GITHUB_SHA" --title "Skins $RELEASE_TAG" --notes-file dist/release-notes.md
-          retry gh release upload "$tag" dist/*.apk --clobber
+          retry gh release upload "$tag" dist/*.apk dist/*.svg --clobber
           retry gh release edit "$tag" --title "Skins $RELEASE_TAG" --notes-file dist/release-notes.md --latest
           gh release view repo >/dev/null 2>&1 || retry gh release create repo --target "$GITHUB_SHA" --latest=false --title "Extension repository index" --notes "StreamX reads index.json from this release. APKs are stored in dated version releases."
           mkdir -p previous

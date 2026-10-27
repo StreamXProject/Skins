@@ -32,3 +32,7 @@ gh workflow run build.yml --repo StreamXProject/Skins --ref main
 ```
 
 Releases use UTC date versions (`vYYYY.MM.DD.HHMMSS`). The `repo` release provides the stable extension index.
+
+### Extension icons
+
+Catalogue entries may include an optional HTTPS `iconUrl`. The build exports each extension’s own Android vector icon as a content-addressed SVG and uploads it beside the APK. The public mirror preserves the icon and rewrites its URL to the public release. StreamX uses installed APK icons first, otherwise loads `iconUrl` through its disk/memory image cache. Missing icons use a generic placeholder; no branded preview icons are bundled in StreamX. Older catalogues without `iconUrl` remain supported.
