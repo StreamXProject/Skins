@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
  *
  * [Home] is the exception and says why it is one.
  */
-object BitChordIcons {
+object StreamXIcons {
 
     /** Audio routing: concentric broadcast rings above an output triangle. */
     val AirplayAudio: ImageVector by lazy {

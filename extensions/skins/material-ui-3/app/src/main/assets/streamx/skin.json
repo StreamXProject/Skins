@@ -2,7 +2,7 @@
   "version": 3,
   "id": "material-expressive",
   "name": "Material UI 3",
-  "author": "BitChord",
+  "author": "StreamX",
   "renderer": {
     "entryPoint": "com.music.streamx.skins.material.ExpressiveRenderer",
     "api": 1

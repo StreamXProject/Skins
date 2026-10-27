@@ -70,7 +70,7 @@ object StreamResolver {
     var playbackEnabled: () -> Boolean = { sourceEnabled() }
 
 
-    private const val TAG = "BitChord"
+    private const val TAG = "StreamX"
 
     /** Past this, an extractor fetch is worth flagging rather than just noting. */
     private const val SLOW_FETCH_MS = 2000L

@@ -118,7 +118,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.music.streamx.ui.haptics.Haptic
 import com.music.streamx.ui.haptics.rememberHaptics
-import com.music.streamx.ui.icons.BitChordIcons
+import com.music.streamx.ui.icons.StreamXIcons
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.streamx.data.NerdStats
 import com.music.streamx.data.listentogether.PartyMember
@@ -623,7 +623,7 @@ internal fun PlayerActionRow(
                 modifier = Modifier.align(Alignment.CenterStart),
             ) {
                 BottomGlyph(
-                    icon = BitChordIcons.LyricsQuote,
+                    icon = StreamXIcons.LyricsQuote,
                     contentDescription = stringResource(if (lyricsOpen) Res.string.close_lyrics else Res.string.open_lyrics),
                     // Lyrics and the queue are two things to show in one place, so
                     // opening either closes the other; lit to say which is up.
@@ -660,7 +660,7 @@ internal fun PlayerActionRow(
                     // read as one control growing a segment.
                     Pill {
                         PillSegment(
-                            icon = BitChordIcons.Shuffle,
+                            icon = StreamXIcons.Shuffle,
                             contentDescription = stringResource(
                                 if (shuffleEnabled) Res.string.shuffle_on else Res.string.shuffle_off,
                             ),
@@ -671,7 +671,7 @@ internal fun PlayerActionRow(
                         )
                         PillDivider()
                         PillSegment(
-                            icon = if (repeatMode == RepeatModes.ONE) null else BitChordIcons.Repeat,
+                            icon = if (repeatMode == RepeatModes.ONE) null else StreamXIcons.Repeat,
                             label = if (repeatMode == RepeatModes.ONE) "1" else null,
                             contentDescription = when (repeatMode) {
                                 RepeatModes.ONE -> stringResource(Res.string.repeat_one)
@@ -692,7 +692,7 @@ internal fun PlayerActionRow(
                         )
                         PillDivider()
                         PillSegment(
-                            icon = BitChordIcons.Infinity,
+                            icon = StreamXIcons.Infinity,
                             contentDescription = stringResource(
                                 if (autoplayEnabled) Res.string.autoplay_on else Res.string.autoplay_off,
                             ),
@@ -712,7 +712,7 @@ internal fun PlayerActionRow(
             }
             Box(Modifier.align(Alignment.CenterEnd)) {
                 BottomGlyph(
-                    icon = BitChordIcons.Queue,
+                    icon = StreamXIcons.Queue,
                     contentDescription = stringResource(Res.string.up_next),
                     onClick = onToggleQueue,
                     highlighted = queueOpen,
@@ -729,7 +729,7 @@ internal fun PlayerActionRow(
  * [active] brightens the disc rather than only the glyph: this sits on album
  * artwork of any colour, and a white icon on a white-ish sleeve has no tint
  * change left to make. The filled heart carries the state as a shape too —
- * see [BitChordIcons.HeartFilled].
+ * see [StreamXIcons.HeartFilled].
  */
 @Composable
 internal fun CircleGlyph(
@@ -1850,7 +1850,7 @@ private fun TrackAnalysisState.localizedLabel(): String = when (this) {
 @Composable
 internal fun ReferencePlayerActions(lyrics: Boolean,queue: Boolean,onLyrics: ()->Unit,onOutput: ()->Unit,onQueue: ()->Unit) {
     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceAround,verticalAlignment=Alignment.CenterVertically) {
-        listOf(Triple(BitChordIcons.LyricsQuote,"Lyrics",onLyrics),Triple(BitChordIcons.AirplayAudio,"Audio output",onOutput),Triple(BitChordIcons.Queue,"Queue",onQueue)).forEachIndexed { index,(icon,label,click) ->
+        listOf(Triple(StreamXIcons.LyricsQuote,"Lyrics",onLyrics),Triple(StreamXIcons.AirplayAudio,"Audio output",onOutput),Triple(StreamXIcons.Queue,"Queue",onQueue)).forEachIndexed { index,(icon,label,click) ->
             val selected=(index==0 && lyrics)||(index==2 && queue)
             val source=remember {MutableInteractionSource()};val pressed by source.collectIsPressedAsState()
             val mod=Modifier.size(48.dp).clip(CircleShape).background(if(selected)Color.White.copy(alpha=.7f)else Color.Transparent)
@@ -1870,10 +1870,10 @@ internal fun ReferenceQueueModes(shuffle: Boolean,repeat: Int,autoplay: Boolean,
     val actions=com.music.streamx.ui.skins.LocalSkinPlayerActions.current
     Row(Modifier.fillMaxWidth().padding(top=14.dp,bottom=16.dp),horizontalArrangement=Arrangement.spacedBy(10.dp)) {
         val modes=listOf(
-            Triple(BitChordIcons.PlayerShuffle,"Shuffle",shuffle),
-            Triple(if(repeat==RepeatModes.ONE)Icons.Rounded.RepeatOne else BitChordIcons.PlayerRepeat,"Repeat",repeat!=RepeatModes.OFF),
-            Triple(BitChordIcons.Infinity,"Continue playing",autoplay),
-            Triple(BitChordIcons.PlayerMix,"Mix transitions",mix))
+            Triple(StreamXIcons.PlayerShuffle,"Shuffle",shuffle),
+            Triple(if(repeat==RepeatModes.ONE)Icons.Rounded.RepeatOne else StreamXIcons.PlayerRepeat,"Repeat",repeat!=RepeatModes.OFF),
+            Triple(StreamXIcons.Infinity,"Continue playing",autoplay),
+            Triple(StreamXIcons.PlayerMix,"Mix transitions",mix))
         modes.forEachIndexed { index,(icon,label,selected) ->
             val source=remember {MutableInteractionSource()};val pressed by source.collectIsPressedAsState()
             val shape=RoundedCornerShape(50)

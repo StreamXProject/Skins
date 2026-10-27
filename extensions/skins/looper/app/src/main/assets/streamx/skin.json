@@ -2,7 +2,7 @@
   "version": 3,
   "id": "looper",
   "name": "Looper",
-  "author": "BitChord / Looper contributors",
+  "author": "StreamX / Looper contributors",
   "renderer": {
     "entryPoint": "com.music.streamx.skins.looper.LooperRenderer",
     "api": 1

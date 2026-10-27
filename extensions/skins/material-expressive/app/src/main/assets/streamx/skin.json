@@ -2,7 +2,7 @@
   "version": 3,
   "id": "material-expressive-v2",
   "name": "Material Expressive",
-  "author": "BitChord",
+  "author": "StreamX",
   "renderer": {
     "entryPoint": "com.music.streamx.skins.expressive.ExpressiveRenderer",
     "api": 1

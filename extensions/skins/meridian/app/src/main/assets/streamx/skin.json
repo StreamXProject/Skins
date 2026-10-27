@@ -2,7 +2,7 @@
   "version": 3,
   "id": "meridian",
   "name": "Meridian",
-  "author": "BitChord",
+  "author": "StreamX",
   "renderer": {
     "entryPoint": "com.music.streamx.skins.meridian.MeridianRenderer",
     "api": 1

@@ -87,7 +87,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Velocity
 import coil3.compose.AsyncImage
 import com.music.streamx.ui.components.thumbnailBorder
-import com.music.streamx.ui.icons.BitChordIcons
+import com.music.streamx.ui.icons.StreamXIcons
 import com.music.streamx.data.model.QueueTier
 import com.music.streamx.data.model.Song
 import com.music.streamx.playback.autoplaySectionStart
@@ -504,7 +504,7 @@ private fun AutoplayHeading(hasTracks: Boolean, modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            BitChordIcons.Infinity,
+            StreamXIcons.Infinity,
             contentDescription = null,
             tint = Color.White.copy(alpha = 0.75f),
             modifier = Modifier.size(18.dp),

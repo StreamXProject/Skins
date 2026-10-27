@@ -54,7 +54,7 @@ import com.music.streamx.data.model.ShelfItem
 import com.music.streamx.data.model.UiState
 import com.music.streamx.data.settings.LibrarySort
 import com.music.streamx.ui.AppUi
-import com.music.streamx.ui.icons.BitChordIcons
+import com.music.streamx.ui.icons.StreamXIcons
 import com.music.streamx.ui.components.LIBRARY_GRID_SPACING
 import com.music.streamx.ui.components.MessageState
 import com.music.streamx.ui.components.PAGE_GUTTER
@@ -296,7 +296,7 @@ private fun LibraryLinkList(links: List<LibraryLink>, onClick: (ShelfItem) -> Un
                     modifier = Modifier.weight(1f),
                 )
                 Icon(
-                    imageVector = BitChordIcons.ChevronRight,
+                    imageVector = StreamXIcons.ChevronRight,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .6f),
                     modifier = Modifier.size(20.dp),
@@ -347,14 +347,14 @@ private fun PlaylistShelf(
                 }
             } else Row(horizontalArrangement = Arrangement.spacedBy(LIBRARY_GRID_SPACING)) {
                 NewShelfCard(
-                    icon = BitChordIcons.Plus,
+                    icon = StreamXIcons.Plus,
                     label = stringResource(Res.string.new_playlist),
                     subtitle = if (cloudStream) "Saved to CloudStream" else stringResource(if (streamX) Res.string.saved_to_streamx else Res.string.saved_to_youtube_music),
                     onClick = onNewPlaylist,
                 )
                 if (onImportSpotifyPlaylist != null) {
                     NewShelfCard(
-                        icon = BitChordIcons.Download,
+                        icon = StreamXIcons.Download,
                         label = stringResource(Res.string.import_spotify),
                         subtitle = stringResource(Res.string.import_spotify_subtitle),
                         onClick = onImportSpotifyPlaylist,
@@ -462,7 +462,7 @@ fun LibraryGridPage(
             if (onNewPlaylist != null) {
                 item(key = "leading") {
                     NewShelfCard(
-                        icon = BitChordIcons.Plus,
+                        icon = StreamXIcons.Plus,
                         label = stringResource(Res.string.new_playlist),
                         subtitle = if (cloudStream) "Saved to CloudStream" else stringResource(if (streamX) Res.string.saved_to_streamx else Res.string.saved_to_youtube_music),
                         onClick = onNewPlaylist,

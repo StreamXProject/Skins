@@ -221,7 +221,7 @@ fun MeshGradientBackground(
 const val MESH_CYCLE_MILLIS = 3_600
 
 /**
- * BitChord's own colours, for the surfaces that have no artwork to take them
+ * StreamX's own colours, for the surfaces that have no artwork to take them
  * from: the welcome pages and the sign-in card on Home. Starts on Apple
  * Music's red and wanders off from there.
  */

@@ -62,7 +62,7 @@ import coil3.compose.AsyncImagePainter
 import coil3.request.ImageRequest
 import com.music.streamx.ui.components.ExplicitBadge
 import com.music.streamx.ui.haptics.Haptic
-import com.music.streamx.ui.icons.BitChordIcons
+import com.music.streamx.ui.icons.StreamXIcons
 import com.music.streamx.ui.theme.stableStatusBarInsets
 import com.music.streamx.data.canvas.CanvasArtwork
 import com.music.streamx.data.model.LikeStatus
@@ -320,7 +320,7 @@ internal fun LandscapeArtwork(
         ) {
             if (!artLoaded && !canvasRendered) {
                 Icon(
-                    imageVector = BitChordIcons.MusicNote,
+                    imageVector = StreamXIcons.MusicNote,
                     contentDescription = null,
                     tint = Color.White.copy(alpha = 0.35f),
                     modifier = Modifier.fillMaxSize(0.36f),
@@ -466,7 +466,7 @@ internal fun LandscapeCredits(
         if (signedIn && song.localUri == null) {
             val liked = likeStatus == LikeStatus.LIKE
             CircleGlyph(
-                icon = if (liked) BitChordIcons.HeartFilled else BitChordIcons.Heart,
+                icon = if (liked) StreamXIcons.HeartFilled else StreamXIcons.Heart,
                 contentDescription = stringResource(
                     if (liked) Res.string.remove_from_liked else Res.string.like,
                 ),

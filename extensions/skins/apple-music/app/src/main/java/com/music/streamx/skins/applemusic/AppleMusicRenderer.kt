@@ -22,7 +22,7 @@ class AppleMusicRenderer : SkinUiRenderer, com.music.streamx.ui.skins.SkinArtwor
     @Composable override fun FeedHeader(title: String,actions: SkinLibraryActions) = AppleMusicFeedHeader(title,actions)
     @Composable override fun PlayerStyle() = applePlayerStyle()
     // By tab id: Home, New (the host's grid glyph), Library, Search, Radio.
-    override fun navigationIcon(index: Int) = listOf(com.music.streamx.ui.icons.BitChordIcons.Home,null,AppleIcons.Library,androidx.compose.material.icons.Icons.Rounded.Search,androidx.compose.material.icons.Icons.Rounded.Sensors).getOrNull(index)
+    override fun navigationIcon(index: Int) = listOf(com.music.streamx.ui.icons.StreamXIcons.Home,null,AppleIcons.Library,androidx.compose.material.icons.Icons.Rounded.Search,androidx.compose.material.icons.Icons.Rounded.Sensors).getOrNull(index)
     override fun navigationLabel(index: Int) = if (index == 1) "New" else null
     @Composable override fun Colors(darkTheme: Boolean) = appleColors(darkTheme)
     override fun typography() = androidx.compose.material3.Typography()

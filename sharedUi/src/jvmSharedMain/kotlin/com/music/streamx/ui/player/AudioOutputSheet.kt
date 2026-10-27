@@ -117,7 +117,7 @@ internal fun AudioOutputSheet(
             // One more place to send the music, listed with the others. The
             // receivers behind it are chosen in a popup of their own — there
             // can be any number of them, and they come and go while it is open.
-            // The watch, when one with BitChord on it is in reach: picked
+            // The watch, when one with StreamX on it is in reach: picked
             // directly, since there is only ever the one.
             if (watch.available || watch.active) {
                 WatchRow(watch = watch, onClick = { PlayerPlatform.host.selectWatchOutput() })
@@ -275,7 +275,7 @@ private fun CastRow(cast: CastUi, onClick: () -> Unit) {
 }
 
 /**
- * The BitChord watch app as the speaker. Drawn like an output of this phone —
+ * The StreamX watch app as the speaker. Drawn like an output of this phone —
  * lit, with a check, while it is the one playing — because to the listener that
  * is what it is.
  */

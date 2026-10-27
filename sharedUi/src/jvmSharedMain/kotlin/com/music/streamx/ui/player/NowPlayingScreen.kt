@@ -153,7 +153,7 @@ import com.music.streamx.ui.LyricsProviderState
 import com.music.streamx.ui.components.optimizedHazeEffect
 import com.music.streamx.ui.haptics.Haptic
 import com.music.streamx.ui.haptics.rememberHaptics
-import com.music.streamx.ui.icons.BitChordIcons
+import com.music.streamx.ui.icons.StreamXIcons
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.streamx.data.canvas.CanvasSource
 import com.music.streamx.data.lyrics.LyricLine
@@ -3002,7 +3002,7 @@ fun NowPlayingScreen(
                             ) {
                                 if (!art.loaded && !canvasRendered) {
                                     Icon(
-                                        imageVector = BitChordIcons.MusicNote,
+                                        imageVector = StreamXIcons.MusicNote,
                                         contentDescription = null,
                                         tint = Color.White.copy(alpha = 0.35f),
                                         modifier = Modifier
@@ -3314,7 +3314,7 @@ fun NowPlayingScreen(
                             if (signedIn && song.localUri == null) {
                                 val liked = likeStatus == LikeStatus.LIKE
                                 CircleGlyph(
-                                    icon = if(referencePlayer!=null) {if(liked) Icons.Rounded.Star else Icons.Rounded.StarBorder} else if (liked) BitChordIcons.HeartFilled else BitChordIcons.Heart,
+                                    icon = if(referencePlayer!=null) {if(liked) Icons.Rounded.Star else Icons.Rounded.StarBorder} else if (liked) StreamXIcons.HeartFilled else StreamXIcons.Heart,
                                     contentDescription = stringResource(
                                         if (liked) Res.string.remove_from_liked else Res.string.like,
                                     ),
