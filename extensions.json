@@ -105,13 +105,6 @@
     "type": "skin"
   },
   {
-    "id": "aurora",
-    "module": "auroraSkin",
-    "project": "extensions/skins/aurora",
-    "packageName": "com.music.streamx.skins.aurora",
-    "type": "skin"
-  },
-  {
     "id": "studio",
     "module": "studioSkin",
     "project": "extensions/skins/studio",

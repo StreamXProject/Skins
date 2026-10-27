@@ -35,47 +35,14 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: python3 .github/scripts/configure-signing.py
-      - name: Build all skins
-        run: ./gradlew --no-daemon -PextensionBuildNumber="$GITHUB_RUN_NUMBER" :applemusicSkin:assembleRelease :comicSkin:assembleRelease :dotSkin:assembleRelease :looperSkin:assembleRelease :materialexpressiveSkin:assembleRelease :materialui3Skin:assembleRelease :meridianSkin:assembleRelease :spotuiSkin:assembleRelease
+      - name: Build every registered skin
+        env:
+          EXTENSION_BUILD_NUMBER: ${{ github.run_number }}
+        run: python3 .github/scripts/build-skins.py
       - uses: actions/upload-artifact@v4
         with:
-          name: apple-music
-          path: extensions/skins/apple-music/app/build/outputs/apk/release/*.apk
-          if-no-files-found: error
-      - uses: actions/upload-artifact@v4
-        with:
-          name: comic
-          path: extensions/skins/comic/app/build/outputs/apk/release/*.apk
-          if-no-files-found: error
-      - uses: actions/upload-artifact@v4
-        with:
-          name: dot
-          path: extensions/skins/dot/app/build/outputs/apk/release/*.apk
-          if-no-files-found: error
-      - uses: actions/upload-artifact@v4
-        with:
-          name: looper
-          path: extensions/skins/looper/app/build/outputs/apk/release/*.apk
-          if-no-files-found: error
-      - uses: actions/upload-artifact@v4
-        with:
-          name: material-expressive
-          path: extensions/skins/material-expressive/app/build/outputs/apk/release/*.apk
-          if-no-files-found: error
-      - uses: actions/upload-artifact@v4
-        with:
-          name: material-ui-3
-          path: extensions/skins/material-ui-3/app/build/outputs/apk/release/*.apk
-          if-no-files-found: error
-      - uses: actions/upload-artifact@v4
-        with:
-          name: meridian
-          path: extensions/skins/meridian/app/build/outputs/apk/release/*.apk
-          if-no-files-found: error
-      - uses: actions/upload-artifact@v4
-        with:
-          name: spotui
-          path: extensions/skins/spotui/app/build/outputs/apk/release/*.apk
+          name: skins
+          path: skin-artifacts/
           if-no-files-found: error
   publish:
     if: github.event_name != 'pull_request'
@@ -95,6 +62,7 @@ jobs:
       - run: sdkmanager "build-tools;36.0.0"
       - uses: actions/download-artifact@v4
         with:
+          name: skins
           path: artifacts
       - name: Choose release version
         env:
