@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <queries><package android:name="com.music.streamx" /></queries>
-    <application android:icon="@drawable/ic_skin_logo" android:label="Apple Music Skin" android:theme="@android:style/Theme.Material.NoActionBar" android:allowBackup="false">
+    <application android:icon="@drawable/ic_apple_music_standard" android:label="Apple Music Skin" android:theme="@android:style/Theme.Material.NoActionBar" android:allowBackup="false">
         <activity android:name=".SkinActivity" android:exported="true">
             <intent-filter>
                 <action android:name="com.music.streamx.action.EXTENSION" />

@@ -23,10 +23,11 @@ internal val Edge=RoundedCornerShape(0.dp)
 internal val Dial=RoundedCornerShape(50)
 internal val ComicRed=Color(0xFFF04432)
 internal val ComicYellow=Color(0xFFFFE648)
+// Follows the app's light/dark mode unless an edition is picked: Ink is the dark one.
 internal object ComicOptions {
-    var edition by mutableStateOf("paper")
+    var edition by mutableStateOf("auto")
     private var loaded=false
-    fun load(context: Context){if(!loaded){edition=context.getSharedPreferences("comic_appearance",0).getString("edition","paper") ?: "paper";loaded=true}}
+    fun load(context: Context){if(!loaded){edition=context.getSharedPreferences("comic_appearance",0).getString("edition","auto") ?: "auto";loaded=true}}
     fun save(context: Context,value: String){edition=value;context.getSharedPreferences("comic_appearance",0).edit().putString("edition",value).apply()}
 }
 @Composable internal fun comicColors(dark: Boolean): ColorScheme {
@@ -87,7 +88,7 @@ internal fun Modifier.inkShadow(ink: Color,offset: Dp=4.dp,shape: Shape=Edge)=dr
     val context=LocalContext.current
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(24.dp)) {
         ComicButton("Back",onDismiss);Spacer(Modifier.height(32.dp));ComicBurst("HEY!");Text("PICK YOUR\nEDITION.",style=MaterialTheme.typography.displayLarge,modifier=Modifier.padding(vertical=24.dp))
-        listOf("paper" to "Paper edition","ink" to "Ink edition","auto" to "Follow app mode").forEach{(id,label)->ComicButton(label,{ComicOptions.save(context,id)},Modifier.fillMaxWidth().padding(bottom=14.dp),ComicOptions.edition==id)}
+        listOf("auto" to "Follow app mode","paper" to "Paper edition · light","ink" to "Ink edition · dark").forEach{(id,label)->ComicButton(label,{ComicOptions.save(context,id)},Modifier.fillMaxWidth().padding(bottom=14.dp),ComicOptions.edition==id)}
         Text("Bangers headings. Comic Neue text. Bold ink panels, paper surfaces and a little mischief.",modifier=Modifier.padding(top=16.dp),style=MaterialTheme.typography.bodyLarge)
         Text("Fonts licensed under the SIL Open Font License. Both families are bundled for offline use.",style=MaterialTheme.typography.bodySmall,modifier=Modifier.padding(top=16.dp))
     }

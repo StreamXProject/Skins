@@ -272,10 +272,20 @@ private fun rubberBand(v: Float) = when {
     val glassBackdrop = if (glass) LocalSkinGlassFactory.current() else null
     val lensModifier = glassBackdrop?.lens(RoundedCornerShape(percent = 50))
     val lift = remember { Animatable(0f) }
+    // How hard the thumb is being pulled sideways: stretches it along the pull and
+    // thins it across, then wobbles it back to round when the finger stops or lifts.
+    val lean = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
     val set by rememberUpdatedState(onValueChange)
     val span = (valueRange.endInclusive - valueRange.start).takeIf { it > 0f } ?: 1f
     val fraction = ((value - valueRange.start) / span).coerceIn(0f, 1f)
+    // The thumb chases the value on a lively spring, so it trails a fast drag and
+    // settles with a small bounce, rather than stretching to keep up.
+    val shown = remember { Animatable(fraction) }
+    var dragging by remember { mutableStateOf(false) }
+    // While held, the finger moves the thumb directly; the setting only follows.
+    // Waiting for each value to come back through the app is what made it stick.
+    LaunchedEffect(fraction, dragging) { if (!dragging) shown.animateTo(fraction, spring(dampingRatio = .52f, stiffness = 650f)) }
     fun snap(f: Float): Float {
         val raw = valueRange.start + span * f.coerceIn(0f, 1f)
         if (steps <= 0) return raw
@@ -292,14 +302,36 @@ private fun rubberBand(v: Float) = when {
                 down.consume()
                 scope.launch { lift.animateTo(1f, spring(dampingRatio = .6f, stiffness = 600f)) }
                 val usable = (size.width - tw).coerceAtLeast(1f)
-                set(snap((down.position.x - tw / 2) / usable))
-                while (true) {
-                    val e = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
-                    if (!e.pressed) break
-                    e.consume()
-                    set(snap((e.position.x - tw / 2) / usable))
+                dragging = true
+                var last = snap((down.position.x - tw / 2) / usable)
+                // Snappy enough to stay under the finger, soft enough to carry it smoothly.
+                val follow = spring<Float>(dampingRatio = .82f, stiffness = 1400f)
+                fun moveTo(x: Float) {
+                    val raw = ((x - tw / 2) / usable).coerceIn(0f, 1f)
+                    val value = snap(raw)
+                    // A stepped slider's thumb lands on the steps; a smooth one on the finger.
+                    val target = if (steps > 0) (value - valueRange.start) / span else raw
+                    scope.launch { shown.animateTo(target, follow) }
+                    if (value != last) { last = value; set(value) }
                 }
-                scope.launch { lift.animateTo(0f, spring(dampingRatio = .55f, stiffness = 420f)) }
+                moveTo(down.position.x)
+                set(last)
+                try {
+                    while (true) {
+                        val e = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
+                        if (!e.pressed) break
+                        e.consume()
+                        moveTo(e.position.x)
+                        val step = e.position.x - e.previousPosition.x
+                        scope.launch { lean.snapTo((lean.value * .6f + step / 6.dp.toPx() * .4f).coerceIn(-1f, 1f)) }
+                    }
+                } finally {
+                    dragging = false
+                    // Let go, it bounces into place, as iOS's does.
+                    scope.launch { shown.animateTo((last - valueRange.start) / span, spring(dampingRatio = .45f, stiffness = 500f)) }
+                    scope.launch { lift.animateTo(0f, spring(dampingRatio = .55f, stiffness = 420f)) }
+                    scope.launch { lean.animateTo(0f, spring(dampingRatio = .4f, stiffness = 420f)) }
+                }
             }
         } else Modifier)) {
         val widthPx = constraints.maxWidth.toFloat()
@@ -315,14 +347,14 @@ private fun rubberBand(v: Float) = when {
             val inset = thumbWPx / 2
             val usable = size.width - thumbWPx
             drawRoundRect(off, Offset(inset, y - h / 2), Size(usable, h), CornerRadius(h / 2))
-            drawRoundRect(fill, Offset(inset, y - h / 2), Size(usable * fraction, h), CornerRadius(h / 2))
+            drawRoundRect(fill, Offset(inset, y - h / 2), Size(usable * shown.value, h), CornerRadius(h / 2))
             if (steps in 1..10) for (i in 0..steps + 1) drawCircle(off, 1.5.dp.toPx(), Offset(inset + usable * i / (steps + 1), y + 9.dp.toPx()))
         })
         Box(Modifier
-            .offset { IntOffset(((widthPx - thumbWPx) * fraction).roundToInt(), 0) }
+            .offset { IntOffset(((widthPx - thumbWPx) * shown.value).roundToInt(), 0) }
             .align(Alignment.CenterStart)
             .size(thumbW, thumbH)
-            .graphicsLayer { val s = 1f + .35f * lift.value; scaleX = s; scaleY = s }
+            .graphicsLayer { val s = 1f + .25f * lift.value; val k = abs(lean.value); scaleX = s * (1f + .04f * k); scaleY = s * (1f - .02f * k) }
             .then(if (lensModifier != null) lensModifier.drawBehind {
                 drawRoundRect(Color.White.copy(alpha = 1f - lift.value), cornerRadius = CornerRadius(size.height / 2))
             } else Modifier.shadow(3.dp, RoundedCornerShape(percent = 50)).background(Color.White, RoundedCornerShape(percent = 50))))

@@ -134,7 +134,7 @@ import dev.chrisbanes.haze.HazeState
 
 @Composable private fun ComicPlayButton(playing: Boolean,loading: Boolean,onClick: ()->Unit,modifier: Modifier,reduce: Boolean) {
     val c=MaterialTheme.colorScheme
-    Surface(onClick=onClick,modifier=modifier.inkShadow(ComicRed,4.dp,CircleShape),shape=CircleShape,color=Color(0xFF191919),contentColor=Color(0xFFFFF8E6),border=BorderStroke(2.dp,Color(0xFF191919))) {
+    Surface(onClick=onClick,modifier=modifier.inkShadow(ComicRed,4.dp,CircleShape),shape=CircleShape,color=Color(0xFF191919),contentColor=Color(0xFFFFF8E6),border=BorderStroke(2.dp,c.onSurface)) {
         Box(Modifier.fillMaxSize().semantics{contentDescription=if(playing)"Pause"else"Play"},contentAlignment=Alignment.Center) {
             if(loading)CircularProgressIndicator(Modifier.size(20.dp),color=ComicYellow,strokeWidth=2.dp)
             else Crossfade(playing,animationSpec=tween(if(reduce)0 else 160),label="Play pause"){Icon(if(it)ComicIcons.Pause else ComicIcons.PlayArrow,null,Modifier.size(26.dp))}
@@ -165,7 +165,7 @@ internal fun clock(ms: Long): String {val s=(ms.coerceAtLeast(0)/1000);return "$
         itemsIndexed(lines){index,line->
             val color by animateColorAsState(if(index==active)c.onSurface else c.onSurfaceVariant,tween(if(reduce)0 else 300),label="Lyric highlight")
             Row(Modifier.fillMaxWidth().background(if(index==active)ComicYellow else Color.Transparent).border(if(index==active)2.dp else 0.dp,if(index==active)c.onSurface else Color.Transparent).clickable{onSeek(line.timeMs)}.padding(horizontal=10.dp,vertical=12.dp),horizontalArrangement=Arrangement.spacedBy(14.dp)) {
-                Box(Modifier.padding(top=8.dp).width(3.dp).height(28.dp).background(if(index==active)c.primary else Color.Transparent,Dial))
+                Box(Modifier.padding(top=8.dp).width(3.dp).height(28.dp).background(if(index!=active)Color.Transparent else if(c.primary==ComicYellow)ComicRed else c.primary,Dial))
                 Text(line.text.ifBlank{"♪"},style=MaterialTheme.typography.headlineMedium,color=if(index==active)Color(0xFF191919)else color,modifier=Modifier.weight(1f))
             }
         }
