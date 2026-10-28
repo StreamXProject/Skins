@@ -36,3 +36,11 @@ Releases use UTC date versions (`vYYYY.MM.DD.HHMMSS`). The `repo` release provid
 ### Extension icons
 
 Catalogue entries may include an optional HTTPS `iconUrl`. The build exports each extension’s own Android vector icon as a content-addressed SVG and uploads it beside the APK. The public mirror preserves the icon and rewrites its URL to the public release. StreamX uses installed APK icons first, otherwise loads `iconUrl` through its disk/memory image cache. Missing icons use a generic placeholder; no branded preview icons are bundled in StreamX. Older catalogues without `iconUrl` remain supported.
+
+## Credits
+
+Some skins recreate the look of other open music players. Thanks to:
+
+- [Looper](https://github.com/SthrNilshaaa/looper)
+- [Namida](https://github.com/namidaco/namida)
+- [DMT](https://github.com/imjyotiraditya/dmt)

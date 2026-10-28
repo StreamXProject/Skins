@@ -1,0 +1,1 @@
+Native layout reference: Namida by namidaco, https://github.com/namidaco/namida. This skin redraws its Home, player and settings layouts in StreamX's own Compose code; no Namida source, assets or Flutter runtime is bundled. Namida is distributed under its own license, see the repository.
