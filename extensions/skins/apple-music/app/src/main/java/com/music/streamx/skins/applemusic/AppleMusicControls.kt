@@ -96,7 +96,8 @@ import kotlin.math.abs
  */
 @Composable internal fun AppleToggle(checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?, enabled: Boolean, modifier: Modifier) {
     val off = if (isDark()) Color(0x52787880) else Color(0x29787880)
-    val accent = MaterialTheme.colorScheme.primary
+    // iOS switches are system green, whatever the app's own tint.
+    val accent = if (isDark()) Color(0xFF30D158) else Color(0xFF34C759)
     val glass = com.music.streamx.ui.skins.LocalSkinLiquidGlass.current
     val position = remember { Animatable(if (checked) 1f else 0f) }
     val lift = remember { Animatable(0f) }
@@ -229,18 +230,18 @@ import kotlin.math.abs
                     val h = (22.dp.toPx() * 1.5f).roundToInt()
                     val placeable = measurable.measure(Constraints.fixed(w, h))
                     layout(constraints.maxWidth, constraints.maxHeight) {
-                        placeable.placeWithLayer(0, 0) {
-                            val p = position.value
+                        // Placed where it is drawn, not drawn shifted from the start: the
+                        // lens samples what is under its placed position, and a layer
+                        // translated from x = 0 bent the switch's resting end instead.
+                        val pad = 2.dp.toPx()
+                        val knobW = 37.dp.toPx()
+                        val cx = pad + knobW / 2 + position.value * (constraints.maxWidth - 2 * pad - knobW) + lean.value * 2.dp.toPx()
+                        val cy = constraints.maxHeight / 2f
+                        placeable.placeWithLayer((cx - w / 2f).roundToInt(), (cy - h / 2f).roundToInt()) {
                             val l = lift.value
                             val tilt = lean.value
-                            val pad = 2.dp.toPx()
-                            val knobW = 37.dp.toPx()
-                            val cx = pad + knobW / 2 + p * (constraints.maxWidth - 2 * pad - knobW) + tilt * 2.dp.toPx()
-                            val cy = constraints.maxHeight / 2f
                             val sw = (1f + .54f * l) / 1.54f * (1f + .1f * abs(tilt))
                             val sh = (1f + .5f * l) / 1.5f * (1f - .05f * abs(tilt))
-                            translationX = cx - w / 2f
-                            translationY = cy - h / 2f
                             scaleX = sw
                             scaleY = sh
                             alpha = (l * 1.6f).coerceIn(0f, 1f)
