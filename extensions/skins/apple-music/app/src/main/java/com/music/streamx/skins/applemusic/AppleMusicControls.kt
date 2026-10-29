@@ -253,11 +253,17 @@ import kotlin.math.abs
     }
 }
 
-/** Past either end the knob still gives a little, a quarter as much. */
-private fun rubberBand(v: Float) = when {
-    v < 0f -> v * .25f
-    v > 1f -> 1f + (v - 1f) * .25f
-    else -> v
+/**
+ * Past either end the knob still gives a little, easing off towards a small
+ * limit, so however far the finger goes it never leaves the track.
+ */
+private fun rubberBand(v: Float): Float {
+    fun give(over: Float) = .12f * over / (over + .5f)
+    return when {
+        v < 0f -> -give(-v)
+        v > 1f -> 1f + give(v - 1f)
+        else -> v
+    }
 }
 
 /**
